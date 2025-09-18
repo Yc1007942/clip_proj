@@ -1,0 +1,30 @@
+{
+  "name": "setd_cartesian_lowmed",
+  "description": "Cartesian-only",
+  "meta": {
+    "notes": "Generated from setc.json by removing joint arrays.",
+    "recommended_eef_step": 0.008,
+    "recommended_speed_scale": 0.01,
+    "recommended_blend_radius": 0.01
+  },
+  "waypoints": [
+    {
+      "name": "current_position",
+      "pose": [-0.647, 0.573, 0.2471, 2.9619, -1.126, -0.0046],
+      "gripper": 30,
+      "wait_time": 0.1
+    },
+    {
+      "name": "small_move_down",
+      "pose": [-0.647, 0.573, 0.2257, 2.9619, -1.126, -0.0046],
+      "gripper": 20,
+      "wait_time": 0.1
+    },
+    {
+      "name": "small_move_down",
+      "pose": [-0.647, 0.573, 0.2257, 2.9619, -1.126, -0.0046],
+      "gripper": 0,
+      "wait_time": 0.1
+    }
+  ]
+}

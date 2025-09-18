@@ -1,0 +1,24 @@
+{
+  "name": "sete_cartesian_lowmed",
+  "description": "Cartesian-only",
+  "meta": {
+    "notes": " arrays.",
+    "recommended_eef_step": 0.008,
+    "recommended_speed_scale": 0.01,
+    "recommended_blend_radius": 0.01
+  },
+  "waypoints": [
+    {
+      "name": "home",
+      "pose": [-0.4492, 0.4311, 0.2424, 2.9233, -1.0835, 0.0065],
+      "gripper": 0,
+      "wait_time": 0.1
+    },
+    {
+      "name": "home",
+      "pose": [-0.4492, 0.4311, 0.2424, 2.9233, -1.0835, 0.0065],
+      "gripper": 0,
+      "wait_time": 0.1
+    }
+  ]
+}
