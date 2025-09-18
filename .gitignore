@@ -1,5 +1,18 @@
 # Universal Robots ROS2 Driver
 Universal_Robots_ROS2_Driver/
+clip_proj.zip
+ik_test.py
+launch_ur_robot.sh
+reset_gripper.py
+rotate_gripper.py
+setd_corrected.json
+setup_ur_network.sh
+smooth_waypoint_controller.py
+update_sete_coordinates.py
+waypoint_cartesian.py
+waypoint_controller.py
+waypoint_controller_backup.py
+waypoint_moveit_blend.py
 
 # Python virtual environment
 .venv/
