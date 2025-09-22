@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>lebai_gripper_ros</name>
+  <version>0.1.0</version>
+  <description>ROS 2 node for Le Bai RS485 Modbus gripper</description>
+  <maintainer email="yuchuan_huang@mymail.sutd.edu.sg">yc</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>launch</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

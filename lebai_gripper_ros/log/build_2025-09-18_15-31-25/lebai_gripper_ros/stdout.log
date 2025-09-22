@@ -1,0 +1,37 @@
+running egg_info
+creating build/lebai_gripper_ros/lebai_gripper_ros.egg-info
+writing build/lebai_gripper_ros/lebai_gripper_ros.egg-info/PKG-INFO
+writing dependency_links to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/dependency_links.txt
+writing entry points to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/entry_points.txt
+writing requirements to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/requires.txt
+writing top-level names to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/top_level.txt
+writing manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+reading manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+writing manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build
+creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib
+creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+copying lebai_gripper_ros/__init__.py -> /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+copying lebai_gripper_ros/lebai_gripper_node.py -> /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+running install
+running install_lib
+creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+copying /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros/__init__.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+copying /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros/lebai_gripper_node.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+byte-compiling /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros/lebai_gripper_node.py to lebai_gripper_node.cpython-310.pyc
+running install_data
+creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index
+creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index
+creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index/packages
+copying resource/lebai_gripper_ros -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index/packages
+copying package.xml -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros
+creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros/launch
+copying launch/lebai_gripper.launch.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros/launch
+running install_egg_info
+Copying build/lebai_gripper_ros/lebai_gripper_ros.egg-info to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros-0.1.0-py3.10.egg-info
+running install_scripts
+Installing lebai_gripper_node script to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/lebai_gripper_ros
+writing list of installed files to '/home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/install.log'
