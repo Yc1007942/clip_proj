@@ -123,8 +123,8 @@ def get_target_coordinates():
     
     if x is not None and y is not None:
         print(f"✅ Using real-time coordinates: X={x:.4f}, Y={y:.4f}")
-        x = x -0.01
-        y = y + 0.01
+        # x = x -0.01
+        # y = y + 0.01
         return x, y
     else:
         # Fallback to default coordinates
