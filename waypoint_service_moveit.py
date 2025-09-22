@@ -275,7 +275,7 @@ class ServiceBasedMoveIt(Node):
 def update_dynamic_coordinates(waypoints_data, target_x, target_y):
     """Update X,Y coordinates for specific waypoints that need dynamic positioning"""
     # List of waypoint names that should use dynamic coordinates
-    dynamic_waypoint_names = ["get_x_y", "x_y_down", "x_y_close_half", "x_y_closed", "x_y_up"]
+    dynamic_waypoint_names = ["get_x_y", "x_y_down", "x_y_close_half", "x_y_closed", "x_y_up", "x_y_up_2"]
     
     updated_count = 0
     for waypoint in waypoints_data.get('waypoints', []):
