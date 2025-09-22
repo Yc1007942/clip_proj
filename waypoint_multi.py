@@ -37,7 +37,30 @@ class MultiTaskMoveIt(Node):
         self.joint_sub = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         self.current_joint_state = None
         
+        # Task execution counter for height adjustment
+        self.task_counter = 0
+        self.initial_height = 0.34  # Initial height for xy1_up and xy1_up_2
+        self.height_decrement = 0.03  # Height reduction per cycle
+        self.minimum_height = 0.28  # Minimum allowed height
+        
         print("[MultiTaskMoveIt] Initialized")
+        print(f"Height adjustment: Start={self.initial_height}m, Decrement={self.height_decrement}m, Minimum={self.minimum_height}m")
+
+    def get_current_height(self):
+        """Calculate current height based on task counter"""
+        current_height = self.initial_height - (self.task_counter * self.height_decrement)
+        # Ensure height doesn't go below minimum
+        return max(current_height, self.minimum_height)
+    
+    def increment_task_counter(self):
+        """Increment task counter and log height changes"""
+        self.task_counter += 1
+        current_height = self.get_current_height()
+        print(f"Task counter incremented to {self.task_counter}")
+        print(f"Next cycle height will be: {current_height:.3f}m")
+        if current_height <= self.minimum_height:
+            print(f"WARNING: Minimum height ({self.minimum_height}m) reached!")
+        return current_height
 
     def joint_state_callback(self, msg):
         """Store current joint state for planning"""
@@ -249,6 +272,22 @@ def update_dynamic_coordinates(waypoints_data, target_x, target_y):
     
     return updated_count
 
+def update_height_coordinates(waypoints_data, new_height):
+    """Update Z coordinates for xy1_up and xy1_up_2 waypoints"""
+    updated_count = 0
+    target_waypoints = ['xy1_up', 'xy1_up_2']
+    
+    for waypoint in waypoints_data.get('waypoints', []):
+        waypoint_name = waypoint.get('name', '')
+        if waypoint_name in target_waypoints:
+            # Update Z coordinate (third element of pose array)
+            old_z = waypoint['pose'][2]
+            waypoint['pose'][2] = new_height
+            updated_count += 1
+            print(f"  Updated {waypoint_name} height: {old_z:.3f}m → {new_height:.3f}m")
+    
+    return updated_count
+
 def get_fresh_coordinates():
     """Get fresh coordinates from get_coordinates.py"""
     try:
@@ -359,6 +398,8 @@ def main():
             print("MULTI-TASK WAYPOINT CONTROLLER")
             print(f"{'='*50}")
             print(f"Available tasks: {', '.join(available_tasks)}")
+            print(f"Task cycles completed: {node.task_counter}")
+            print(f"Current height setting: {node.get_current_height():.3f}m")
             print("Commands: <task_name> | 'list' | 'quit'")
             
             user_input = input("\nSelect task to execute: ").strip().lower()
@@ -386,10 +427,17 @@ def main():
             
             # Create working copy of waypoints data and update coordinates
             working_data = json.loads(json.dumps(base_waypoints_data))  # Deep copy
-            updated_count = update_dynamic_coordinates(working_data, target_x, target_y)
             
+            # Update X,Y coordinates
+            updated_count = update_dynamic_coordinates(working_data, target_x, target_y)
             if updated_count > 0:
                 print(f"Updated {updated_count} waypoints with fresh coordinates")
+            
+            # Update height coordinates based on task counter
+            current_height = node.get_current_height()
+            height_updated_count = update_height_coordinates(working_data, current_height)
+            if height_updated_count > 0:
+                print(f"Updated {height_updated_count} waypoints with cycle height: {current_height:.3f}m")
             
             # Filter waypoints for selected task
             task_waypoints = filter_waypoints_by_task(working_data, selected_task)
@@ -410,7 +458,9 @@ def main():
                 continue
             
             print(f"\n🚀 Starting execution of task: {selected_task.upper()}")
+            print(f"Task execution cycle: {node.task_counter + 1}")
             print(f"Using coordinates: X={target_x:.4f}, Y={target_y:.4f}")
+            print(f"Current cycle height: {current_height:.3f}m")
             print(f"Z-offset applied: {node.GLOBAL_Z_OFFSET*100:.0f}cm")
             
             # Execute the task
@@ -422,8 +472,13 @@ def main():
             
             if success:
                 print(f"✅ Task '{selected_task}' completed successfully!")
+                # Increment task counter for next cycle
+                next_height = node.increment_task_counter()
+                if next_height <= node.minimum_height:
+                    print(f"⚠️  Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
             else:
                 print(f"❌ Task '{selected_task}' execution failed!")
+                print("Task counter not incremented due to execution failure")
                 
             print("\nReady for next task...")
             
