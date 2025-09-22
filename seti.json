@@ -15,7 +15,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "get_x_y",
+      "name": "xy1",
       "pose": [
         -0.6,
         0.6,
@@ -28,7 +28,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "x_y_down",
+      "name": "xy1_down",
       "pose": [
         -0.6,
         0.6,
@@ -41,7 +41,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "x_y_close_half",
+      "name": "xy1_close_half",
       "pose": [
         -0.6,
         0.6,
@@ -54,7 +54,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "x_y_closed",
+      "name": "xy1_closed",
       "pose": [
         -0.6,
         0.6,
@@ -67,7 +67,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "x_y_up",
+      "name": "xy1_up",
       "pose": [
         -0.6,
         0.6,
@@ -80,7 +80,7 @@
       "wait_time": 0.1
     },
     {
-      "name": "x_y_up_2",
+      "name": "xy1_up_2",
       "pose": [
         -0.6,
         0.6,
@@ -92,46 +92,89 @@
       "gripper": 6,
       "wait_time": 0.1
     },
-    
     {
-      "name": "hover_point",
+      "name": "clip1_hover_point",
       "pose": [-0.4539, 0.4059, 0.2934, 2.9232, -1.0841, 0.0065],
       "gripper": 5,
       "wait_time": 0.1
     },
     {
-      "name": "hover_point_2",
+      "name": "clip1_hover_point_2",
       "pose": [-0.4636, 0.4078, 0.2593, 2.9233, -1.0837, 0.007],
       "gripper": 5,
       "wait_time": 0.1
     },
     {
-      "name": "hover_point_3",
+      "name": "clip1_hover_point_3",
       "pose": [-0.4455, 0.4274, 0.2528, 2.9233, -1.0835, 0.0072],
       "gripper": 5,
       "wait_time": 0.1
     },
     {
-      "name": "insertion_point",
+      "name": "clip1_insertion_point",
       "pose": [-0.4492, 0.4311, 0.2424, 2.9233, -1.0835, 0.0065],
       "gripper": 5,
       "wait_time": 0.1
     },
     
     {
-      "name": "insertion_push",
+      "name": "clip1_insertion_push",
       "pose": [-0.4493, 0.4311, 0.2314, 2.9234, -1.0833, 0.0065],
       "gripper": 5,
       "wait_time": 0.1
     },
     {
-      "name": "wire_release",
+      "name": "clip1_wire_release",
       "pose": [-0.4493, 0.4311, 0.2314, 2.9234, -1.0833, 0.0065],
       "gripper": 100,
       "wait_time": 0.1
     },
     {
-      "name": "home",
+      "name": "clip1_home",
+      "pose": [-0.2604, 0.2105, 0.5807, 3.0299, -0.8486, -0.4856],
+      "gripper": 70,
+      "wait_time": 0.1
+    },
+    
+    {
+      "name": "clip2_hover_point",
+      "pose": [-0.3865, 0.4723, 0.259, 2.8672, -1.1796, -0.107],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_hover_point_2",
+      "pose": [-0.3672, 0.4918, 0.2495, 2.9751, -1.126, -0.0405],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_hover_point_3",
+      "pose": [-0.3561, 0.5045, 0.2376, 2.8493, -1.141, -0.1419],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_insertion_point",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    
+    {
+      "name": "clip2_insertion_push",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_wire_release",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_home",
       "pose": [-0.2604, 0.2105, 0.5807, 3.0299, -0.8486, -0.4856],
       "gripper": 70,
       "wait_time": 0.1
