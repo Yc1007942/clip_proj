@@ -50,7 +50,7 @@
         -1.1299,
         0.0236
       ],
-      "gripper": 10,
+      "gripper": 11,
       "wait_time": 0.1
     },
     {
@@ -63,7 +63,7 @@
         -1.1301,
         0.0236
       ],
-      "gripper": 5,
+      "gripper": 11,
       "wait_time": 0.1
     },
     {
@@ -76,32 +76,44 @@
         -1.1301,
         0.0236
       ],
-      "gripper": 5,
+      "gripper": 11,
       "wait_time": 0.1
     },
     {
-      "name": "home",
+      "name": "origin",
       "pose": [-0.5242, 0.512, 0.3099, 3.0133, -0.9475, 0.0137],
-      "gripper": 5,
+      "gripper": 7,
       "wait_time": 0.1
     },
     {
       "name": "hover_point",
       "pose": [-0.4539, 0.4059, 0.2934, 2.9232, -1.0841, 0.0065],
-      "gripper": 5,
+      "gripper": 7,
+      "wait_time": 0.1
+    },
+    {
+      "name": "hover_point_2",
+      "pose": [-0.4636, 0.4078, 0.2593, 2.9233, -1.0837, 0.007],
+      "gripper": 7,
+      "wait_time": 0.1
+    },
+    {
+      "name": "hover_point_3",
+      "pose": [-0.4455, 0.4274, 0.2528, 2.9233, -1.0835, 0.0072],
+      "gripper": 7,
       "wait_time": 0.1
     },
     {
       "name": "insertion_point",
       "pose": [-0.4492, 0.4311, 0.2424, 2.9233, -1.0835, 0.0065],
-      "gripper": 5,
+      "gripper": 7,
       "wait_time": 0.1
     },
     
     {
       "name": "insertion_push",
       "pose": [-0.4493, 0.4311, 0.2314, 2.9234, -1.0833, 0.0065],
-      "gripper": 5,
+      "gripper": 7,
       "wait_time": 0.1
     },
     {
