@@ -457,7 +457,7 @@ def main():
                 print("Task execution cancelled")
                 continue
             
-            print(f"\n🚀 Starting execution of task: {selected_task.upper()}")
+            print(f"\n Starting execution of task: {selected_task.upper()}")
             print(f"Task execution cycle: {node.task_counter + 1}")
             print(f"Using coordinates: X={target_x:.4f}, Y={target_y:.4f}")
             print(f"Current cycle height: {current_height:.3f}m")
@@ -471,13 +471,13 @@ def main():
                                            velocity_scale=args.velocity_scale)
             
             if success:
-                print(f"✅ Task '{selected_task}' completed successfully!")
+                print(f" Task '{selected_task}' completed successfully!")
                 # Increment task counter for next cycle
                 next_height = node.increment_task_counter()
                 if next_height <= node.minimum_height:
-                    print(f"⚠️  Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
+                    print(f" Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
             else:
-                print(f"❌ Task '{selected_task}' execution failed!")
+                print(f" Task '{selected_task}' execution failed!")
                 print("Task counter not incremented due to execution failure")
                 
             print("\nReady for next task...")
