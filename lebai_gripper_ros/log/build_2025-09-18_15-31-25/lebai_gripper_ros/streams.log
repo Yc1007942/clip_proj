@@ -1,0 +1,39 @@
+[1.166s] Invoking command in '/home/panasonic/clip_proj/lebai_gripper_ros': PYTHONPATH=/home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base build/lebai_gripper_ros build --build-base /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build install --record /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/install.log --single-version-externally-managed install_data
+[1.628s] running egg_info
+[1.629s] creating build/lebai_gripper_ros/lebai_gripper_ros.egg-info
+[1.629s] writing build/lebai_gripper_ros/lebai_gripper_ros.egg-info/PKG-INFO
+[1.630s] writing dependency_links to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/dependency_links.txt
+[1.630s] writing entry points to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/entry_points.txt
+[1.631s] writing requirements to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/requires.txt
+[1.631s] writing top-level names to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/top_level.txt
+[1.631s] writing manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+[1.635s] reading manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+[1.636s] writing manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+[1.637s] running build
+[1.637s] running build_py
+[1.637s] creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build
+[1.637s] creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib
+[1.638s] creating /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+[1.638s] copying lebai_gripper_ros/__init__.py -> /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+[1.638s] copying lebai_gripper_ros/lebai_gripper_node.py -> /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros
+[1.638s] running install
+[1.638s] running install_lib
+[1.639s] creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+[1.639s] copying /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros/__init__.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+[1.639s] copying /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build/lib/lebai_gripper_ros/lebai_gripper_node.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros
+[1.640s] byte-compiling /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros/__init__.py to __init__.cpython-310.pyc
+[1.640s] byte-compiling /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros/lebai_gripper_node.py to lebai_gripper_node.cpython-310.pyc
+[1.642s] running install_data
+[1.643s] creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index
+[1.643s] creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index
+[1.643s] creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index/packages
+[1.644s] copying resource/lebai_gripper_ros -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/ament_index/resource_index/packages
+[1.644s] copying package.xml -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros
+[1.644s] creating /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros/launch
+[1.644s] copying launch/lebai_gripper.launch.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros/launch
+[1.644s] running install_egg_info
+[1.646s] Copying build/lebai_gripper_ros/lebai_gripper_ros.egg-info to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros-0.1.0-py3.10.egg-info
+[1.647s] running install_scripts
+[1.677s] Installing lebai_gripper_node script to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/lebai_gripper_ros
+[1.677s] writing list of installed files to '/home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/install.log'
+[1.709s] Invoked command in '/home/panasonic/clip_proj/lebai_gripper_ros' returned '0': PYTHONPATH=/home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base build/lebai_gripper_ros build --build-base /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/build install --record /home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/install.log --single-version-externally-managed install_data
