@@ -126,7 +126,7 @@ class MultiTaskMoveIt(Node):
             print("Cartesian planning service call failed")
             return None, 0.0
 
-    def execute_trajectory(self, trajectory: RobotTrajectory, timeout=30.0, velocity_scale=0.1):
+    def execute_trajectory(self, trajectory: RobotTrajectory, timeout=120.0, velocity_scale=0.1):
         """Execute a planned trajectory"""
         if not trajectory or not trajectory.joint_trajectory.points:
             print("No valid trajectory to execute")
@@ -165,20 +165,20 @@ class MultiTaskMoveIt(Node):
             
         print("Goal accepted, executing trajectory...")
         
-        # Wait for completion
+        # Wait for completion using manual loop like waypoint_service_moveit.py
         result_future = goal_handle.get_result_async()
-        completed = rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
+        start_time = time.time()
         
-        if not completed:
-            print(f"Trajectory execution timed out after {timeout} seconds")
-            # Cancel the goal
-            cancel_future = goal_handle.cancel_goal_async()
-            rclpy.spin_until_future_complete(self, cancel_future, timeout_sec=2.0)
-            return False
-        
-        if not result_future.done():
-            print("Trajectory execution incomplete")
-            return False
+        while not result_future.done():
+            rclpy.spin_once(self, timeout_sec=0.1)
+            elapsed = time.time() - start_time
+            
+            if elapsed > timeout:
+                print(f"Trajectory execution timed out after {timeout} seconds")
+                # Cancel the goal
+                cancel_future = goal_handle.cancel_goal_async()
+                rclpy.spin_until_future_complete(self, cancel_future, timeout_sec=5.0)
+                return False
             
         result = result_future.result()
         if result and result.result.error_code == 0:
@@ -195,7 +195,7 @@ class MultiTaskMoveIt(Node):
         msg.data = value
         self.gripper_pub.publish(msg)
 
-    def execute_waypoints(self, waypoints: List[dict], eef_step=0.005, min_fraction=0.8, timeout=30.0, velocity_scale=0.1):
+    def execute_waypoints(self, waypoints: List[dict], eef_step=0.005, min_fraction=0.8, timeout=120.0, velocity_scale=0.1):
         """Execute a sequence of Cartesian waypoints with individual gripper control"""
         print(f"Executing {len(waypoints)} waypoints individually...")
         
@@ -255,7 +255,7 @@ def get_fresh_coordinates():
         import sys
         import os
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from get_coordinates import get_target_coordinates
+        from get_multi_coordinates import get_target_coordinates
         
         target_x, target_y = get_target_coordinates()
         print(f"Fresh coordinates from get_coordinates.py: X={target_x:.4f}, Y={target_y:.4f}")
