@@ -293,7 +293,7 @@ def load_and_update_waypoints(filename):
     """Load waypoint file and update dynamic coordinates if needed"""
     try:
         # Check if this is a file that needs dynamic coordinate updates
-        if filename.startswith('sete') or filename.startswith('setf'):
+        if filename.startswith('sete') or filename.startswith('setf') or filename.startswith('seth'):
             # Import and get dynamic coordinates
             import sys
             import os
