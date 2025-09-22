@@ -1,0 +1,183 @@
+{
+  "name": "setf_cartesian_lowmed",
+  "description": "Cartesian-only",
+  "meta": {
+    "notes": " arrays.",
+    "recommended_eef_step": 0.008,
+    "recommended_speed_scale": 0.05,
+    "recommended_blend_radius": 0.05
+  },
+  "waypoints": [
+    {
+      "name": "home",
+      "pose": [-0.2604, 0.2105, 0.5807, 3.0299, -0.8486, -0.4856],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1",
+      "pose": [
+        -0.6,
+        0.6,
+        0.2497,
+        2.9368,
+        -1.1303,
+        0.0237
+      ],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1_down",
+      "pose": [
+        -0.6,
+        0.6,
+        0.2231,
+        2.9369,
+        -1.13,
+        0.0238
+      ],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1_close_half",
+      "pose": [
+        -0.6,
+        0.6,
+        0.2235,
+        2.9369,
+        -1.1299,
+        0.0236
+      ],
+      "gripper": 11,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1_closed",
+      "pose": [
+        -0.6,
+        0.6,
+        0.2254,
+        2.937,
+        -1.1301,
+        0.0236
+      ],
+      "gripper": 11,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1_up",
+      "pose": [
+        -0.6,
+        0.6,
+        0.34,
+        2.937,
+        -1.1301,
+        0.0236
+      ],
+      "gripper": 11,
+      "wait_time": 0.1
+    },
+    {
+      "name": "xy1_up_2",
+      "pose": [
+        -0.6,
+        0.6,
+        0.34,
+        2.937,
+        -1.1301,
+        0.0236
+      ],
+      "gripper": 6,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_hover_point",
+      "pose": [-0.4539, 0.4059, 0.2934, 2.9232, -1.0841, 0.0065],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_hover_point_2",
+      "pose": [-0.4636, 0.4078, 0.2593, 2.9233, -1.0837, 0.007],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_hover_point_3",
+      "pose": [-0.4455, 0.4274, 0.2528, 2.9233, -1.0835, 0.0072],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_insertion_point",
+      "pose": [-0.4492, 0.4311, 0.2424, 2.9233, -1.0835, 0.0065],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    
+    {
+      "name": "clip1_insertion_push",
+      "pose": [-0.4493, 0.4311, 0.2314, 2.9234, -1.0833, 0.0065],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_wire_release",
+      "pose": [-0.4493, 0.4311, 0.2314, 2.9234, -1.0833, 0.0065],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip1_home",
+      "pose": [-0.2604, 0.2105, 0.5807, 3.0299, -0.8486, -0.4856],
+      "gripper": 70,
+      "wait_time": 0.1
+    },
+    
+    {
+      "name": "clip2_hover_point",
+      "pose": [-0.3865, 0.4723, 0.259, 2.8672, -1.1796, -0.107],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_hover_point_2",
+      "pose": [-0.3672, 0.4918, 0.2495, 2.9751, -1.126, -0.0405],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_hover_point_3",
+      "pose": [-0.3561, 0.5045, 0.2376, 2.8493, -1.141, -0.1419],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_insertion_point",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    
+    {
+      "name": "clip2_insertion_push",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 5,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_wire_release",
+      "pose": [-0.3581, 0.5036, 0.2292, 2.8457, -1.1358, -0.1218],
+      "gripper": 100,
+      "wait_time": 0.1
+    },
+    {
+      "name": "clip2_home",
+      "pose": [-0.2604, 0.2105, 0.5807, 3.0299, -0.8486, -0.4856],
+      "gripper": 70,
+      "wait_time": 0.1
+    }
+  ]
+}
