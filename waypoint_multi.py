@@ -49,13 +49,13 @@ class MultiTaskMoveIt(Node):
         self.force_monitoring_enabled = True
         
         # Force thresholds (configurable parameters)
-        self.force_threshold_x = 20.0  # Newtons
-        self.force_threshold_y = 20.0  # Newtons  
-        self.force_threshold_z = 20.0  # Newtons
+        self.force_threshold_x = 15.0  # Newtons
+        self.force_threshold_y = 15.0  # Newtons  
+        self.force_threshold_z = 15.0  # Newtons
         self.torque_threshold_x = 10.0  # Newton-meters
         self.torque_threshold_y = 10.0  # Newton-meters
         self.torque_threshold_z = 10.0  # Newton-meters
-        self.force_resultant_threshold = 30.0  # Overall force magnitude limit
+        self.force_resultant_threshold = 20.0  # Overall force magnitude limit
         self.consecutive_violations_required = 2  # Require N consecutive violations
         self.consecutive_violations_count = 0
         
