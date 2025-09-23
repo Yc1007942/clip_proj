@@ -39,8 +39,8 @@ class MultiTaskMoveIt(Node):
         
         # Task execution counter for height adjustment
         self.task_counter = 0
-        self.initial_height = 0.34  # Initial height for xy1_up and xy1_up_2
-        self.height_decrement = 0.03  # Height reduction per cycle
+        self.initial_height = 0.325  # Initial height for xy1_up and xy1_up_2
+        self.height_decrement = 0.0215  # Height reduction per cycle
         self.minimum_height = 0.28  # Minimum allowed height
         
         print("[MultiTaskMoveIt] Initialized")
