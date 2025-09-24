@@ -67,7 +67,7 @@ class MultiTaskMoveIt(Node):
         
         # Task execution counter for height adjustment
         self.task_counter = 0
-        self.initial_height = 0.325  # Initial height for xy1_up and xy1_up_2
+        self.initial_height = 0.32  # Initial height for xy1_up and xy1_up_2
         self.height_decrement = 0.0235  # Height reduction per cycle
         self.minimum_height = 0.28  # Minimum allowed height
         
@@ -495,6 +495,175 @@ class MultiTaskMoveIt(Node):
         print("\nAll waypoints executed successfully!")
         return True
 
+    def should_check_clip_status(self, waypoint_name):
+        """Determine if clip status should be checked after this waypoint"""
+        # Check status only after returning home from clip insertion
+        check_after = [
+            'clip1_home',      # After clip1 insertion and return to home
+            'clip2_home'       # After clip2 insertion and return to home
+        ]
+        
+        return waypoint_name in check_after
+
+    def check_clip_status_after_waypoint(self, waypoint_name, task_name, test_mode=False):
+        """Check clip status after executing a waypoint"""
+        print(f"\n🔍 Checking clip status after waypoint: {waypoint_name}")
+        
+        if test_mode:
+            # Simulate clip status in test mode with new response format
+            import random
+            simulated_response = {
+                "overall_status": "cable_in_both" if random.random() > 0.3 else "cable_out_some",
+                "clip_count": 2,
+                "clip_results": [
+                    {
+                        "clip_id": 1,
+                        "position": "right", 
+                        "status": "cable_in" if random.random() > 0.3 else "cable_out",
+                        "confidence": random.randint(75, 95),
+                        "center_x": 640.5
+                    },
+                    {
+                        "clip_id": 2,
+                        "position": "left",
+                        "status": "cable_in" if random.random() > 0.3 else "cable_out", 
+                        "confidence": random.randint(75, 95),
+                        "center_x": 240.3
+                    }
+                ],
+                "processing_time": random.uniform(1.5, 3.0)
+            }
+            
+            print(f" TEST MODE: Simulated clip analysis response")
+            return simulated_response
+        
+        try:
+            # Import the clip status function
+            from get_multi_coordinates_withclip import get_clip_status
+            
+            # Extract clip number from waypoint name (e.g., 'clip1_home' -> 1)
+            if 'clip1' in waypoint_name:
+                clip_number = 1
+            elif 'clip2' in waypoint_name:
+                clip_number = 2
+            else:
+                # Get status for all clips if can't determine specific clip
+                clip_number = None
+            
+            # Get clip status from detection system
+            response = get_clip_status(clip_number)
+            
+            if isinstance(response, dict) and 'clip_results' in response:
+                # Handle new format response - return full analysis
+                print(f"📊 Full clip analysis received:")
+                print(f"    Overall: {response.get('overall_status', 'unknown')}")
+                print(f"    Clips: {response.get('clip_count', 0)} detected")
+                return response
+            elif isinstance(response, str):
+                # Handle legacy single clip response
+                if response == 'in':
+                    print(f"✅ Clip {clip_number} successfully placed and confirmed!")
+                    return 'in'
+                elif response == 'out':
+                    print(f"❌ Clip {clip_number} placement failed - clip not properly inserted!")
+                    return 'out'
+                else:
+                    print(f"⚠️  Could not determine clip {clip_number} status: {response}")
+                    return 'unknown'
+            else:
+                print(f"⚠️  Invalid response format from detection system")
+                return None
+                
+        except ImportError:
+            print("WARNING: Could not import clip status checking - continuing without status")
+            return None
+        except Exception as e:
+            print(f"ERROR checking clip status: {e}")
+            return None
+
+    def execute_waypoints(self, waypoints: List[dict], eef_step=0.005, min_fraction=0.8, timeout=120.0, velocity_scale=0.1, waypoints_data=None, test_mode=False, task_name=None):
+        """Execute a sequence of Cartesian waypoints with individual gripper control, force monitoring, and clip status checking"""
+        print(f"Executing {len(waypoints)} waypoints individually...")
+        if test_mode:
+            print(" TEST MODE: Simulating waypoint execution without sending robot commands")
+        
+        clip_status_results = []  # Track clip status for each attempt
+        
+        for i, waypoint in enumerate(waypoints):
+            waypoint_name = waypoint.get('name', f'waypoint_{i+1}')
+            print(f"\n--- Waypoint {i+1}: {waypoint_name} ---")
+            
+            # Check if we have a previous force failure that needs recovery
+            if self.force_failure_detected and waypoints_data and not test_mode:
+                print(" Force failure detected! Initiating recovery sequence...")
+                recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
+                if recovery_success:
+                    print("Recovery completed. Task execution aborted.")
+                else:
+                    print("Recovery failed! Manual intervention required.")
+                return False, clip_status_results
+            
+            # Plan path to single waypoint
+            single_waypoint = [waypoint]
+            trajectory, fraction = self.plan_cartesian_path(single_waypoint, eef_step, min_fraction)
+            
+            if not trajectory:
+                print(f"Failed to plan path to waypoint {i+1}")
+                return False, clip_status_results
+                
+            print(f"Planned trajectory covers {fraction*100:.2f}% of path")
+            if fraction < min_fraction:
+                print(f"Path coverage {fraction*100:.2f}% is below minimum required {min_fraction*100:.2f}%")
+                return False, clip_status_results
+            
+            # Execute trajectory to this waypoint (with force monitoring)
+            success = self.execute_trajectory(trajectory, timeout, velocity_scale, test_mode=test_mode)
+            
+            # Check for force failure after trajectory execution (skip in test mode)
+            if self.force_failure_detected and not test_mode:
+                print(f" Force failure occurred during waypoint {i+1} execution!")
+                if waypoints_data:
+                    print("Initiating recovery sequence...")
+                    recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
+                    if recovery_success:
+                        print("Recovery completed. Task execution aborted.")
+                    else:
+                        print("Recovery failed! Manual intervention required.")
+                return False, clip_status_results
+            
+            if not success:
+                print(f"Failed to execute trajectory to waypoint {i+1}")
+                return False, clip_status_results
+            
+            # Handle gripper control for this waypoint
+            if 'gripper' in waypoint:
+                if test_mode:
+                    print(f" TEST MODE: Would set gripper to {waypoint['gripper']}")
+                else:
+                    print(f"Setting gripper to {waypoint['gripper']}")
+                    self.set_gripper(waypoint['gripper'])
+                time.sleep(0.1 if test_mode else 0.5)  # Shorter wait in test mode
+            
+            # Handle wait time for this waypoint
+            if 'wait_time' in waypoint and waypoint['wait_time'] > 0:
+                wait_time = 0.2 if test_mode else waypoint['wait_time']  # Shorter wait in test mode
+                print(f"Waiting {wait_time} seconds..." + (" (test mode)" if test_mode else ""))
+                time.sleep(wait_time)
+            
+            # Check for clip status after specific waypoints (typically after insertion attempts)
+            if self.should_check_clip_status(waypoint_name) and task_name:
+                clip_status = self.check_clip_status_after_waypoint(waypoint_name, task_name, test_mode)
+                if clip_status:
+                    clip_status_results.append({
+                        'waypoint': waypoint_name,
+                        'task': task_name,
+                        'response': clip_status,
+                        'timestamp': time.time()
+                    })
+        
+        print("\nAll waypoints executed successfully!")
+        return True, clip_status_results
+
 def update_dynamic_coordinates(waypoints_data, target_x, target_y):
     """Update X,Y coordinates for waypoints starting with 'xy1'"""
     updated_count = 0
@@ -536,7 +705,7 @@ def get_fresh_coordinates(test_mode=False):
         import sys
         import os
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        from get_multi_coordinates import get_target_coordinates
+        from get_multi_coordinates_withclip import get_target_coordinates
         
         target_x, target_y = get_target_coordinates()
         print(f"Fresh coordinates from get_coordinates.py: X={target_x:.4f}, Y={target_y:.4f}")
@@ -743,18 +912,37 @@ def main():
                     display_task_waypoints(task_waypoints, task_input)
                     
                     # Execute task in test mode
-                    print(f"\n Executing {len(task_waypoints)} waypoints in TEST MODE...")
-                    success = node.execute_waypoints(task_waypoints, 
+                    print(f"\n🧪 Executing {len(task_waypoints)} waypoints in TEST MODE...")
+                    success, clip_status_results = node.execute_waypoints(task_waypoints, 
                                                    eef_step=args.eef_step, 
                                                    min_fraction=args.min_fraction,
                                                    timeout=args.timeout,
                                                    velocity_scale=args.velocity_scale,
                                                    waypoints_data=working_data,
-                                                   test_mode=True)
+                                                   test_mode=True,
+                                                   task_name=task_input)
                     
                     if success:
-                        print(f" Test execution of task '{task_input}' completed successfully!")
-                        print(" In real mode, this would increment the task counter")
+                        print(f"✅ Test execution of task '{task_input}' completed successfully!")
+                        
+                        # Display simulated clip status results
+                        if clip_status_results:
+                            print(f"\n📋 Simulated Clip Status Results:")
+                            for result in clip_status_results:
+                                response = result['response']
+                                waypoint = result['waypoint']
+                                
+                                if isinstance(response, dict) and 'clip_results' in response:
+                                    print(f"  📊 Simulated analysis after {waypoint}:")
+                                    print(f"      Overall: {response.get('overall_status', 'unknown')}")
+                                    for clip in response.get('clip_results', []):
+                                        clip_id = clip.get('clip_id', '?')
+                                        status = clip.get('status', 'unknown')
+                                        confidence = clip.get('confidence', 0)
+                                        status_icon = "✅" if "in" in status else "❌"
+                                        print(f"      {status_icon} Clip {clip_id}: {status} ({confidence}% confidence)")
+                        
+                        print("🧪 In real mode, this would increment the task counter")
                     else:
                         print(f" Test execution of task '{task_input}' failed!")
                 else:
@@ -816,23 +1004,86 @@ def main():
             print(f"Current cycle height: {current_height:.3f}m")
             print(f"Z-offset applied: {node.GLOBAL_Z_OFFSET*100:.0f}cm")
             
-            # Execute the task with force monitoring
-            success = node.execute_waypoints(task_waypoints, 
+            # Execute the task with force monitoring and clip status checking
+            success, clip_status_results = node.execute_waypoints(task_waypoints, 
                                            eef_step=args.eef_step, 
                                            min_fraction=args.min_fraction,
                                            timeout=args.timeout,
                                            velocity_scale=args.velocity_scale,
-                                           waypoints_data=working_data)
+                                           waypoints_data=working_data,
+                                           task_name=selected_task)
             
             if success:
-                print(f" Task '{selected_task}' completed successfully!")
+                print(f"✅ Task '{selected_task}' completed successfully!")
+                
+                # Display clip status results
+                if clip_status_results:
+                    print(f"\n📋 Clip Status Summary for {selected_task}:")
+                    
+                    for result in clip_status_results:
+                        response = result['response']
+                        waypoint = result['waypoint']
+                        
+                        # Handle new format response
+                        if isinstance(response, dict) and 'clip_results' in response:
+                            overall_status = response.get('overall_status', 'unknown')
+                            clip_count = response.get('clip_count', 0)
+                            processing_time = response.get('processing_time', 0)
+                            
+                            print(f"  📊 Analysis after {waypoint}:")
+                            print(f"      Overall status: {overall_status}")
+                            print(f"      Clips detected: {clip_count}")
+                            print(f"      Processing time: {processing_time:.2f}s")
+                            
+                            # Display individual clip results
+                            clip_results = response.get('clip_results', [])
+                            successful_clips = []
+                            failed_clips = []
+                            
+                            for clip in clip_results:
+                                clip_id = clip.get('clip_id', 'unknown')
+                                position = clip.get('position', 'unknown') 
+                                status = clip.get('status', 'unknown')
+                                confidence = clip.get('confidence', 0)
+                                center_x = clip.get('center_x', 0)
+                                
+                                status_icon = "✅" if "in" in status else "❌" if "out" in status else "⚠️"
+                                print(f"      {status_icon} Clip {clip_id} ({position}): {status} (confidence: {confidence}%, x: {center_x:.1f})")
+                                
+                                if "in" in status:
+                                    successful_clips.append(clip_id)
+                                elif "out" in status:
+                                    failed_clips.append(clip_id)
+                            
+                            # Summary
+                            print(f"\n📊 Final Results: {len(successful_clips)} successful, {len(failed_clips)} failed")
+                            
+                            if failed_clips:
+                                print(f"\n⚠️  {len(failed_clips)} clip(s) failed to be placed properly:")
+                                for clip_id in failed_clips:
+                                    print(f"     - Clip {clip_id}: Cable not inserted")
+                                
+                                # Ask user what to do about failed clips
+                                retry_failed = input("\nWould you like to note this for retry in next cycle? (y/N): ").strip().lower()
+                                if retry_failed == 'y':
+                                    print("📝 Failed clips noted for potential retry")
+                            
+                            if successful_clips:
+                                print(f"✅ {len(successful_clips)} clip(s) successfully placed and confirmed!")
+                        
+                        # Handle legacy single status response  
+                        else:
+                            status_icon = "✅" if response == 'in' else "❌" if response == 'out' else "⚠️"
+                            clip_num = "1" if "clip1" in waypoint else "2" if "clip2" in waypoint else "?"
+                            print(f"  {status_icon} Clip {clip_num}: {str(response).upper()} (checked after {waypoint})")
+                
                 # Increment task counter for next cycle only if no force failure
                 if not node.force_failure_detected:
                     next_height = node.increment_task_counter()
                     if next_height <= node.minimum_height:
-                        print(f" Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
+                        print(f"⚠️  Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
                 else:
-                    print(" Task completed but force failure occurred - counter not incremented")
+                    print("⚠️  Task completed but force failure occurred - counter not incremented")
             else:
                 print(f" Task '{selected_task}' execution failed!")
                 if node.force_failure_detected:

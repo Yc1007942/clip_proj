@@ -9,7 +9,7 @@ def generate_launch_description():
             name='lebai_gripper',
             output='screen',
             parameters=[{
-                'port': '/dev/ttyUSB0',   # IMPORTANT: set your serial port here!!
+                'port': '/dev/ttyUSB1',   # IMPORTANT: set your serial port here!!
                 'slave': 1,
                 'baudrate': 115200,
                 'publish_rate_hz': 10.0,

@@ -1,0 +1,20 @@
+running egg_info
+writing build/lebai_gripper_ros/lebai_gripper_ros.egg-info/PKG-INFO
+writing dependency_links to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/dependency_links.txt
+writing entry points to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/entry_points.txt
+writing requirements to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/requires.txt
+writing top-level names to build/lebai_gripper_ros/lebai_gripper_ros.egg-info/top_level.txt
+reading manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+writing manifest file 'build/lebai_gripper_ros/lebai_gripper_ros.egg-info/SOURCES.txt'
+running build
+running build_py
+running install
+running install_lib
+running install_data
+copying launch/lebai_gripper.launch.py -> /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/share/lebai_gripper_ros/launch
+running install_egg_info
+removing '/home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros-0.1.0-py3.10.egg-info' (and everything under it)
+Copying build/lebai_gripper_ros/lebai_gripper_ros.egg-info to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/python3.10/site-packages/lebai_gripper_ros-0.1.0-py3.10.egg-info
+running install_scripts
+Installing lebai_gripper_node script to /home/panasonic/clip_proj/lebai_gripper_ros/install/lebai_gripper_ros/lib/lebai_gripper_ros
+writing list of installed files to '/home/panasonic/clip_proj/lebai_gripper_ros/build/lebai_gripper_ros/install.log'
