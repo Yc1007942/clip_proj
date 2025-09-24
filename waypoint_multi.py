@@ -49,13 +49,13 @@ class MultiTaskMoveIt(Node):
         self.force_monitoring_enabled = True
         
         # Force thresholds (configurable parameters)
-        self.force_threshold_x = 15.0  # Newtons
-        self.force_threshold_y = 15.0  # Newtons  
-        self.force_threshold_z = 15.0  # Newtons
-        self.torque_threshold_x = 10.0  # Newton-meters
-        self.torque_threshold_y = 10.0  # Newton-meters
-        self.torque_threshold_z = 10.0  # Newton-meters
-        self.force_resultant_threshold = 20.0  # Overall force magnitude limit
+        self.force_threshold_x = 5.0  # Newtons
+        self.force_threshold_y = 5.0  # Newtons  
+        self.force_threshold_z = 5.0  # Newtons
+        self.torque_threshold_x = 5.0  # Newton-meters
+        self.torque_threshold_y = 5.0  # Newton-meters
+        self.torque_threshold_z = 5.0  # Newton-meters
+        self.force_resultant_threshold = 5.0  # Overall force magnitude limit
         self.consecutive_violations_required = 2  # Require N consecutive violations
         self.consecutive_violations_count = 0
         
@@ -67,8 +67,8 @@ class MultiTaskMoveIt(Node):
         
         # Task execution counter for height adjustment
         self.task_counter = 0
-        self.initial_height = 0.32  # Initial height for xy1_up and xy1_up_2
-        self.height_decrement = 0.0215  # Height reduction per cycle
+        self.initial_height = 0.325  # Initial height for xy1_up and xy1_up_2
+        self.height_decrement = 0.0235  # Height reduction per cycle
         self.minimum_height = 0.28  # Minimum allowed height
         
         print("[MultiTaskMoveIt] Initialized")
@@ -601,11 +601,11 @@ def main():
                         help='Execution timeout in seconds (default: 30)')
     parser.add_argument('--velocity-scale', type=float, default=0.3,
                         help='Velocity scaling factor for safe execution (default: 0.3)')
-    parser.add_argument('--force-threshold', type=float, default=50.0,
+    parser.add_argument('--force-threshold', type=float, default=5.0,
                         help='Force threshold in Newtons for X,Y,Z axes (default: 50.0)')
-    parser.add_argument('--torque-threshold', type=float, default=10.0,
+    parser.add_argument('--torque-threshold', type=float, default=5.0,
                         help='Torque threshold in Newton-meters for X,Y,Z axes (default: 10.0)')
-    parser.add_argument('--force-resultant-threshold', type=float, default=60.0,
+    parser.add_argument('--force-resultant-threshold', type=float, default=5.0,
                         help='Overall force magnitude threshold in Newtons (default: 60.0)')
     parser.add_argument('--consecutive-violations', type=int, default=3,
                         help='Number of consecutive violations required to trigger abort (default: 3)')
