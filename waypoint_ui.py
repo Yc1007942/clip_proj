@@ -449,14 +449,12 @@ class WaypointControllerUI:
         self.base_dir = Path(__file__).resolve().parent
     
     def resolve_json_path(self, filename):
-        """Return absolute path to the JSON file within the project"""
         path = Path(filename)
         if not path.is_absolute():
             path = self.base_dir / path
         return path
         
     def start_video_capture(self):
-        """Initialize video capture"""
         try:
             # Try different camera indices
             for i in range(3):
@@ -469,7 +467,6 @@ class WaypointControllerUI:
             return None
     
     def get_video_frame(self, cap):
-        """Get a frame from video capture"""
         if cap is None:
             frame = np.zeros((480, 640, 3), dtype=np.uint8)
             for y in range(480):
@@ -487,8 +484,7 @@ class WaypointControllerUI:
                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 136), 2)
             cv2.putText(frame, "Connect camera for live feed", (150, 410), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-            
-            # Add status indicator
+        
             status_color = (0, 255, 136) if self.is_running else (255, 170, 0)
             status_text = "EXECUTING WAYPOINTS" if self.is_running else "READY TO EXECUTE"
             cv2.putText(frame, f"STATUS: {status_text}", (10, 30), 
@@ -506,8 +502,6 @@ class WaypointControllerUI:
             cv2.putText(frame, "Check camera connection", (160, 260), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 100, 100), 2)
             return frame
-        
-        # Add overlay information to live feed
         cv2.putText(frame, "UR5e LIVE FEED", (10, 30), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
         cv2.putText(frame, f"STATUS: {'EXECUTING' if self.is_running else 'READY'}", 
@@ -517,7 +511,6 @@ class WaypointControllerUI:
         return frame
     
     def validate_json_file(self, filename):
-        """Validate if the JSON file exists and is properly formatted"""
         if not filename.lower().endswith('.json'):
             return False, "File must have .json extension"
 
@@ -550,7 +543,6 @@ class WaypointControllerUI:
             return False, f"File validation error: {e}"
     
     def execute_waypoint_sequence(self, filename, velocity_scale=0.3):
-        """Execute waypoint sequence using the MoveIt service-based controller"""
 
         def run_controller():
             try:
@@ -624,7 +616,6 @@ class WaypointControllerUI:
         thread.start()
     
     def stop_execution(self):
-        """Stop the current execution"""
         if self.process:
             try:
                 if self.process.stdin and not self.process.stdin.closed:
@@ -639,7 +630,6 @@ class WaypointControllerUI:
         self.process = None
     
     def get_logs(self):
-        """Get accumulated logs"""
         logs = []
         while not self.log_queue.empty():
             try:
@@ -817,7 +807,7 @@ with col2:
             st.session_state.logs.append("🛑 Execution stopped")
             st.rerun()
     
-# Bottom section - Logs
+
 st.markdown('<div class="section-header">Execution Logs</div>', unsafe_allow_html=True)
 
 # Get new logs from controller only if there are any
@@ -828,7 +818,6 @@ if new_logs:
     if controller.is_running:
         st.rerun()
 
-# Display logs (use cached logs to avoid flickering)
 log_container = st.container()
 with log_container:
     st.markdown('<div class="log-container">', unsafe_allow_html=True)
@@ -847,7 +836,6 @@ with log_container:
 
 st.markdown('<p class="helper-text">Streaming recent output from the MoveIt controller and waypoint runner.</p>', unsafe_allow_html=True)
 
-# Controlled refresh for live updates - only when necessary
 if controller.is_running:
     # Only refresh if we haven't refreshed recently
     if 'last_refresh' not in st.session_state:
@@ -859,14 +847,12 @@ if controller.is_running:
         time.sleep(0.5)  # Brief pause before refresh
         st.rerun()
 
-# Cleanup on app shutdown
 def cleanup():
     if 'controller' in st.session_state:
         st.session_state.controller.stop_execution()
     if 'cap' in st.session_state and st.session_state.cap:
         st.session_state.cap.release()
 
-# Register cleanup
 import atexit
 
 if not st.session_state.get('cleanup_registered', False):
