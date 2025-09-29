@@ -8,7 +8,6 @@ import math
 import argparse
 import re
 from typing import List, Optional, Dict
-
 from geometry_msgs.msg import Pose, WrenchStamped
 from moveit_msgs.srv import GetCartesianPath, GetMotionPlan
 from moveit_msgs.msg import RobotTrajectory, MoveItErrorCodes, MotionPlanRequest, PlanningOptions
@@ -26,7 +25,7 @@ def rotvec_to_quat(rx, ry, rz):
     return (ax*s, ay*s, az*s, math.cos(angle/2.0))
 
 class MultiTaskMoveIt(Node):
-    GLOBAL_Z_OFFSET = 0  # No Z-offset by default
+    GLOBAL_Z_OFFSET = 0 
     
     def __init__(self):
         super().__init__('multi_task_moveit')
@@ -58,8 +57,6 @@ class MultiTaskMoveIt(Node):
         self.force_resultant_threshold = 5.0  # Overall force magnitude limit
         self.consecutive_violations_required = 2  # Require N consecutive violations
         self.consecutive_violations_count = 0
-        
-        # Failure handling state
         self.force_failure_detected = False
         self.current_goal_handle = None
         
@@ -70,50 +67,30 @@ class MultiTaskMoveIt(Node):
         self.initial_height = 0.325  # Initial height for xy1_up and xy1_up_2
         self.height_decrement = 0.0235  # Height reduction per cycle
         self.minimum_height = 0.28  # Minimum allowed height
-        
-        print("[MultiTaskMoveIt] Initialized")
-        print(f"Height adjustment: Start={self.initial_height}m, Decrement={self.height_decrement}m, Minimum={self.minimum_height}m")
-        print(f"Force monitoring enabled with thresholds:")
-        print(f"  Force: X={self.force_threshold_x}N, Y={self.force_threshold_y}N, Z={self.force_threshold_z}N")
-        print(f"  Torque: X={self.torque_threshold_x}Nm, Y={self.torque_threshold_y}Nm, Z={self.torque_threshold_z}Nm")
-        print(f"  Resultant force limit: {self.force_resultant_threshold}N")
-        print(f"  Consecutive violations required: {self.consecutive_violations_required}")
 
     def get_current_height(self):
-        """Calculate current height based on task counter"""
         current_height = self.initial_height - (self.task_counter * self.height_decrement)
-        # Ensure height doesn't go below minimum
         return max(current_height, self.minimum_height)
     
     def increment_task_counter(self):
-        """Increment task counter and log height changes"""
         self.task_counter += 1
         current_height = self.get_current_height()
-        print(f"Task counter incremented to {self.task_counter}")
-        print(f"Next cycle height will be: {current_height:.3f}m")
         if current_height <= self.minimum_height:
             print(f"WARNING: Minimum height ({self.minimum_height}m) reached!")
         return current_height
 
     def joint_state_callback(self, msg):
-        """Store current joint state for planning"""
         self.current_joint_state = msg
 
     def wrench_callback(self, msg):
-        """Process force/torque sensor data and check for violations"""
         self.current_wrench = msg
-        
-        # Add to history for moving average
         self.wrench_history.append(msg)
         if len(self.wrench_history) > self.history_size:
             self.wrench_history.pop(0)
-        
-        # Check for force violations if monitoring is enabled
         if self.force_monitoring_enabled and len(self.wrench_history) >= self.consecutive_violations_required:
             self.check_force_violations()
 
     def calculate_average_wrench(self):
-        """Calculate moving average of recent wrench readings"""
         if not self.wrench_history:
             return None
             
@@ -131,7 +108,6 @@ class MultiTaskMoveIt(Node):
         }
 
     def check_force_violations(self):
-        """Check if current force readings exceed thresholds"""
         avg_wrench = self.calculate_average_wrench()
         if not avg_wrench:
             return False
@@ -142,7 +118,6 @@ class MultiTaskMoveIt(Node):
         # Calculate force resultant magnitude
         force_magnitude = math.sqrt(force['x']**2 + force['y']**2 + force['z']**2)
         
-        # Check individual axis thresholds
         violations = []
         if abs(force['x']) > self.force_threshold_x:
             violations.append(f"Force X: {force['x']:.1f}N > {self.force_threshold_x}N")
@@ -159,7 +134,6 @@ class MultiTaskMoveIt(Node):
         if force_magnitude > self.force_resultant_threshold:
             violations.append(f"Force magnitude: {force_magnitude:.1f}N > {self.force_resultant_threshold}N")
         
-        # Additional failure triggers can be added here
 
         if violations:
             self.consecutive_violations_count += 1
@@ -169,7 +143,6 @@ class MultiTaskMoveIt(Node):
                 self.trigger_force_failure(violations, force_magnitude)
                 return True
         else:
-            # Reset violation count if no violations detected
             self.consecutive_violations_count = 0
             
         return False
@@ -180,31 +153,20 @@ class MultiTaskMoveIt(Node):
             
         self.force_failure_detected = True
         
-        print(f"\n FORCE FAILURE DETECTED! ")
         print(f"Force magnitude: {force_magnitude:.2f}N")
         print(f"Violations: {', '.join(violations)}")
-        print("Initiating emergency stop and recovery...")
         
-        # Cancel current trajectory if one is executing
         if self.current_goal_handle and not self.current_goal_handle.get_result_async().done():
-            print("Cancelling current trajectory...")
             cancel_future = self.current_goal_handle.cancel_goal_async()
             rclpy.spin_until_future_complete(self, cancel_future, timeout_sec=3.0)
         
-        # Wait a moment for trajectory to stop
         time.sleep(0.5)
-        
-        # Open gripper immediately
-        print("Opening gripper to 100...")
         self.set_gripper(100)
-        time.sleep(1.0)  # Give gripper time to open
+        time.sleep(1.0)  
         
-        print("Force failure handling completed. Ready for recovery sequence.")
 
     def execute_failure_recovery(self, waypoints_data, test_mode=False):
-        """Execute recovery sequence - move to failure_home waypoint"""
         try:
-            # Find failure_home waypoint
             failure_home_waypoint = None
             for waypoint in waypoints_data.get('waypoints', []):
                 if waypoint.get('name') == 'failure_home':
@@ -212,84 +174,62 @@ class MultiTaskMoveIt(Node):
                     break
             
             if not failure_home_waypoint:
-                print("ERROR: failure_home waypoint not found in waypoint data!")
+                print("ERROR: failure_home waypoint not found")
                 return False
             
-            print(f"Executing recovery to failure_home: {failure_home_waypoint['pose']}")
+            print(f"Executing recovery: {failure_home_waypoint['pose']}")
             
-            # Execute movement to failure_home with slower speed for safety
-            # Use direct trajectory execution to avoid recursion
             single_waypoint = [failure_home_waypoint]
             trajectory, fraction = self.plan_cartesian_path(single_waypoint, 0.01, 0.1)
             
             if trajectory and fraction > 0.1:
                 print(f"Recovery path planned with {fraction*100:.1f}% coverage")
-                # Temporarily clear failure flag and disable force monitoring during recovery
                 original_monitoring = self.force_monitoring_enabled
                 original_failure_state = self.force_failure_detected
                 self.force_monitoring_enabled = False
-                self.force_failure_detected = False  # Clear flag so execute_trajectory can run
-                print(" Temporarily cleared failure state for recovery movement")
-                
+                self.force_failure_detected = False
                 recovery_success = self.execute_trajectory(trajectory, 60.0, 0.1, test_mode=test_mode)
-                
-                # Restore original states after recovery attempt
                 self.force_monitoring_enabled = original_monitoring
                 self.force_failure_detected = original_failure_state
-                print(" Restored original failure state after recovery")
             else:
-                print("Failed to plan recovery path to failure_home")
                 recovery_success = False
             
             if recovery_success:
-                print(" Recovery to failure_home completed successfully")
                 return True
             else:
-                print(" Recovery to failure_home failed!")
                 return False
                 
         except Exception as e:
-            print(f"ERROR during failure recovery: {e}")
+            print(f"ERROR: {e}")
             return False
         finally:
-            # Reset consecutive violations count but keep failure state for user acknowledgment
             self.consecutive_violations_count = 0
 
-    def wait_for_services(self, timeout=10.0):
-        """Wait for required services to become available"""
+    def wait_for_services(self, timeout=20.0):
         print("Waiting for MoveIt services...")
         
         if not self.cartesian_path_client.wait_for_service(timeout_sec=timeout):
-            print("Cartesian path service not available")
             return False
             
         if not self.motion_plan_client.wait_for_service(timeout_sec=timeout):
-            print("Motion planning service not available") 
             return False
             
         if not self.trajectory_action_client.wait_for_server(timeout_sec=timeout):
-            print("Trajectory action server not available")
             return False
         
-        # Wait for joint state
         start_time = time.time()
         while time.time() - start_time < timeout:
             if self.current_joint_state is not None:
                 break
-            rclpy.spin_once(self, timeout_sec=0.1)  # Process callbacks
+            rclpy.spin_once(self, timeout_sec=0.1)
         else:
-            print("No joint state received")
             return False
-            
-        print("All services ready!")
+    
         return True
 
     def create_pose_from_array(self, pose_array):
-        """Convert [x,y,z,rx,ry,rz] to geometry_msgs/Pose with Z-offset"""
         x, y, z, rx, ry, rz = pose_array
         qx, qy, qz, qw = rotvec_to_quat(rx, ry, rz)
-        
-        # Apply global Z-offset
         z_offset = self.GLOBAL_Z_OFFSET
         
         pose = Pose()
@@ -303,21 +243,14 @@ class MultiTaskMoveIt(Node):
         return pose
 
     def plan_cartesian_path(self, waypoints, eef_step=0.005, min_fraction=0.8):
-        """Plan Cartesian path through waypoints"""
         request = GetCartesianPath.Request()
-        
-        # Set header
         request.header.frame_id = "base_link"
         request.header.stamp = self.get_clock().now().to_msg()
-        
-        # Convert waypoint arrays to Pose messages
         request.waypoints = [self.create_pose_from_array(wp['pose']) for wp in waypoints]
         request.max_step = eef_step
         request.jump_threshold = 2.0
         request.group_name = "ur_manipulator"
-        request.link_name = "tool0"  # Explicitly specify the tool frame
-        
-        # Add current robot state (simplified)
+        request.link_name = "tool0"  
         if self.current_joint_state:
             request.start_state.joint_state = self.current_joint_state
             print(f"Using current joint state with {len(self.current_joint_state.position)} joints")
@@ -332,175 +265,124 @@ class MultiTaskMoveIt(Node):
             if response.error_code.val == MoveItErrorCodes.SUCCESS:
                 return response.solution, response.fraction
             else:
-                print(f"Cartesian planning failed: {response.error_code.val}")
+                print(f"Planning failed: {response.error_code.val}")
                 return None, 0.0
         else:
-            print("Cartesian planning service call failed")
             return None, 0.0
 
     def execute_trajectory(self, trajectory: RobotTrajectory, timeout=120.0, velocity_scale=0.1, test_mode=False):
-        """Execute a planned trajectory"""
         if not trajectory or not trajectory.joint_trajectory.points:
-            print("No valid trajectory to execute")
             return False
         
         if test_mode:
             print(f" TEST MODE: Simulating trajectory execution with {len(trajectory.joint_trajectory.points)} points")
             print(f" TEST MODE: Would execute at {velocity_scale*100:.1f}% speed for ~{timeout}s max")
-            time.sleep(1.0)  # Simulate execution time
-            print(" TEST MODE: Trajectory execution simulation completed successfully!")
+            time.sleep(1.0) 
             return True
         
-        # Create trajectory goal
         goal = FollowJointTrajectory.Goal()
         goal.trajectory = trajectory.joint_trajectory
-        
-        # Scale velocities, accelerations, and timing
         for point in goal.trajectory.points:
             if point.velocities:
                 point.velocities = [v * velocity_scale for v in point.velocities]
             if point.accelerations:
                 point.accelerations = [a * velocity_scale * velocity_scale for a in point.accelerations]
-            # Scale time (inverse of velocity scaling) - be careful with nanosec overflow
             total_time_ns = point.time_from_start.sec * 1e9 + point.time_from_start.nanosec
             scaled_time_ns = int(total_time_ns / velocity_scale)
             point.time_from_start.sec = int(scaled_time_ns // 1e9)
             point.time_from_start.nanosec = int(scaled_time_ns % 1e9)
-        
-        print(f"Executing trajectory with {len(goal.trajectory.points)} points at {velocity_scale*100:.1f}% speed...")
-        
-        # Send goal
-        print("Sending trajectory goal...")
+       
         future = self.trajectory_action_client.send_goal_async(goal)
-        
-        # Wait for goal acceptance
-        print("Waiting for goal acceptance...")
         rclpy.spin_until_future_complete(self, future)
         
         goal_handle = future.result()
         if not goal_handle.accepted:
             print("Trajectory goal rejected")
             return False
-            
-        # Store goal handle for potential cancellation
         self.current_goal_handle = goal_handle
-        print("Goal accepted, executing trajectory...")
-        
-        # Wait for completion using manual loop with force monitoring
         result_future = goal_handle.get_result_async()
         start_time = time.time()
         
         while not result_future.done():
-            # Process callbacks (including force sensor data)
             rclpy.spin_once(self, timeout_sec=0.1)
             elapsed = time.time() - start_time
-            
-            # Check for force failure during execution
             if self.force_failure_detected:
-                print(" Force failure detected during trajectory execution!")
-                print("Trajectory will be cancelled...")
                 return False  # Force failure handling already done in trigger_force_failure
             
             if elapsed > timeout:
-                print(f"Trajectory execution timed out after {timeout} seconds")
-                # Cancel the goal
+                print(f"Timed out after {timeout} ")
                 cancel_future = goal_handle.cancel_goal_async()
                 rclpy.spin_until_future_complete(self, cancel_future, timeout_sec=5.0)
                 return False
-        
-        # Clear goal handle when execution completes
         self.current_goal_handle = None
             
         result = result_future.result()
         if result and result.result.error_code == 0:
-            print("Trajectory execution completed successfully!")
             return True
         else:
             error_code = result.result.error_code if result else "unknown"
-            print(f"Trajectory execution failed with error: {error_code}")
+            print(f"Failed with error: {error_code}")
             return False
 
     def set_gripper(self, value):
-        """Set gripper position"""
         msg = UInt8()
         msg.data = value
         self.gripper_pub.publish(msg)
 
     def execute_waypoints(self, waypoints: List[dict], eef_step=0.005, min_fraction=0.8, timeout=120.0, velocity_scale=0.1, waypoints_data=None, test_mode=False):
-        """Execute a sequence of Cartesian waypoints with individual gripper control and force monitoring"""
-        print(f"Executing {len(waypoints)} waypoints individually...")
+        
         if test_mode:
-            print(" TEST MODE: Simulating waypoint execution without sending robot commands")
         
         for i, waypoint in enumerate(waypoints):
-            print(f"\n--- Waypoint {i+1}: {waypoint.get('name', f'waypoint_{i+1}')} ---")
-            
-            # Check if we have a previous force failure that needs recovery
+            print(f"\nWaypoint {i+1}: {waypoint.get('name', f'waypoint_{i+1}')}")
             if self.force_failure_detected and waypoints_data and not test_mode:
-                print(" Force failure detected! Initiating recovery sequence...")
                 recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
                 if recovery_success:
-                    print("Recovery completed. Task execution aborted.")
                 else:
-                    print("Recovery failed! Manual intervention required.")
+                    print("Recovery failed. Manual intervention required.")
                 return False
-            
-            # Plan path to single waypoint
             single_waypoint = [waypoint]
             trajectory, fraction = self.plan_cartesian_path(single_waypoint, eef_step, min_fraction)
             
             if not trajectory:
-                print(f"Failed to plan path to waypoint {i+1}")
                 return False
                 
             print(f"Planned trajectory covers {fraction*100:.2f}% of path")
             if fraction < min_fraction:
                 print(f"Path coverage {fraction*100:.2f}% is below minimum required {min_fraction*100:.2f}%")
                 return False
-            
-            # Execute trajectory to this waypoint (with force monitoring)
             success = self.execute_trajectory(trajectory, timeout, velocity_scale, test_mode=test_mode)
             
-            # Check for force failure after trajectory execution (skip in test mode)
             if self.force_failure_detected and not test_mode:
-                print(f" Force failure occurred during waypoint {i+1} execution!")
                 if waypoints_data:
-                    print("Initiating recovery sequence...")
                     recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
                     if recovery_success:
                         print("Recovery completed. Task execution aborted.")
                     else:
-                        print("Recovery failed! Manual intervention required.")
+                        print("Manual intervention required.")
                 return False
             
             if not success:
-                print(f"Failed to execute trajectory to waypoint {i+1}")
                 return False
             
-            # Handle gripper control for this waypoint
             if 'gripper' in waypoint:
                 if test_mode:
                     print(f" TEST MODE: Would set gripper to {waypoint['gripper']}")
                 else:
-                    print(f"Setting gripper to {waypoint['gripper']}")
                     self.set_gripper(waypoint['gripper'])
-                time.sleep(0.1 if test_mode else 0.5)  # Shorter wait in test mode
+                time.sleep(0.1 if test_mode else 0.5) 
             
-            # Handle wait time for this waypoint
             if 'wait_time' in waypoint and waypoint['wait_time'] > 0:
                 wait_time = 0.2 if test_mode else waypoint['wait_time']  # Shorter wait in test mode
                 print(f"Waiting {wait_time} seconds..." + (" (test mode)" if test_mode else ""))
                 time.sleep(wait_time)
         
-        print("\nAll waypoints executed successfully!")
         return True
 
 def update_dynamic_coordinates(waypoints_data, target_x, target_y):
-    """Update X,Y coordinates for waypoints starting with 'xy1'"""
     updated_count = 0
     for waypoint in waypoints_data.get('waypoints', []):
         if waypoint.get('name', '').startswith('xy1'):
-            # Update X and Y coordinates (first two elements of pose array)
             old_x, old_y = waypoint['pose'][0], waypoint['pose'][1]
             waypoint['pose'][0] = target_x
             waypoint['pose'][1] = target_y
@@ -510,27 +392,22 @@ def update_dynamic_coordinates(waypoints_data, target_x, target_y):
     return updated_count
 
 def update_height_coordinates(waypoints_data, new_height):
-    """Update Z coordinates for xy1_up and xy1_up_2 waypoints"""
     updated_count = 0
     target_waypoints = ['xy1_up', 'xy1_up_2']
     
     for waypoint in waypoints_data.get('waypoints', []):
         waypoint_name = waypoint.get('name', '')
         if waypoint_name in target_waypoints:
-            # Update Z coordinate (third element of pose array)
             old_z = waypoint['pose'][2]
             waypoint['pose'][2] = new_height
             updated_count += 1
-            print(f"  Updated {waypoint_name} height: {old_z:.3f}m → {new_height:.3f}m")
+            print(f"  Updated {waypoint_name} height: {old_z:.3f}m to {new_height:.3f}m")
     
     return updated_count
 
 def get_fresh_coordinates(test_mode=False):
-    """Get fresh coordinates from get_coordinates.py or use test coordinates"""
     if test_mode:
-        # Return default test coordinates
-        print(" Using test coordinates for force failure testing")
-        return 0.5, 0.3  # Safe test coordinates
+        return 0.5, 0.3  
         
     try:
         import sys
@@ -544,18 +421,14 @@ def get_fresh_coordinates(test_mode=False):
     except ImportError:
         print("ERROR: Could not import get_coordinates.py")
         print("Falling back to test coordinates...")
-        return 0.5, 0.3  # Fallback test coordinates
+        return 0.5, 0.3  # Fallback test coordinates-----------------------
     except Exception as e:
-        print(f"ERROR: Failed to get coordinates: {e}")
-        print("Falling back to test coordinates...")
-        return 0.5, 0.3  # Fallback test coordinates
-
+        return 0.5, 0.3  
 def extract_tasks_from_waypoints(waypoints_data):
-    """Extract available tasks from waypoint data"""
     tasks = set()
     for waypoint in waypoints_data.get('waypoints', []):
         name = waypoint.get('name', '')
-        # Look for task patterns like 'clip1_', 'clip2_', etc.
+        # Look for task patterns like 'clip1_', 'clip2_'
         match = re.match(r'^(clip\d+)_', name)
         if match:
             tasks.add(match.group(1))
@@ -563,16 +436,9 @@ def extract_tasks_from_waypoints(waypoints_data):
     return sorted(list(tasks))
 
 def filter_waypoints_by_task(waypoints_data, task_name):
-    """Filter waypoints to only include those belonging to a specific task"""
     filtered_waypoints = []
-    
-    # Add common waypoints (home, xy1, etc.) and task-specific waypoints
     for waypoint in waypoints_data.get('waypoints', []):
         name = waypoint.get('name', '')
-        
-        # Include waypoints that:
-        # 1. Start with the task name (e.g., 'clip1_')
-        # 2. Are common waypoints (home, xy1, etc.)
         if (name.startswith(f'{task_name}_') or 
             name in ['home', 'xy1', 'xy1_down', 'xy1_up'] or
             name.startswith('xy1')):
@@ -581,8 +447,6 @@ def filter_waypoints_by_task(waypoints_data, task_name):
     return filtered_waypoints
 
 def display_task_waypoints(waypoints, task_name):
-    """Display waypoints for a specific task"""
-    print(f"\n=== Task: {task_name.upper()} ===")
     for i, wp in enumerate(waypoints):
         name = wp.get('name', f'waypoint_{i+1}')
         pose = wp.get('pose', [0, 0, 0, 0, 0, 0])
@@ -614,8 +478,6 @@ def main():
     
     rclpy.init()
     node = MultiTaskMoveIt()
-    
-    # Configure force thresholds from command line arguments
     node.force_threshold_x = args.force_threshold
     node.force_threshold_y = args.force_threshold
     node.force_threshold_z = args.force_threshold
@@ -624,19 +486,10 @@ def main():
     node.torque_threshold_z = args.torque_threshold
     node.force_resultant_threshold = args.force_resultant_threshold
     node.consecutive_violations_required = args.consecutive_violations
-    
-    print(f"Force monitoring configured:")
-    print(f"  Force thresholds: {args.force_threshold}N per axis")
-    print(f"  Torque thresholds: {args.torque_threshold}Nm per axis")
-    print(f"  Resultant force limit: {args.force_resultant_threshold}N")
-    print(f"  Consecutive violations required: {args.consecutive_violations}")
-    
     if not node.wait_for_services():
         print("Failed to connect to services")
         rclpy.shutdown()
         return
-    
-    # Load base waypoint file
     try:
         with open(args.file, 'r') as f:
             base_waypoints_data = json.load(f)
@@ -648,28 +501,19 @@ def main():
         print(f"ERROR: Failed to load waypoints: {e}")
         rclpy.shutdown()
         return
-    
-    # Extract available tasks
     available_tasks = extract_tasks_from_waypoints(base_waypoints_data)
     
     if not available_tasks:
-        print("No tasks found in waypoint file!")
+        print("No tasks found in waypoint file")
         rclpy.shutdown()
         return
     
     print(f"\nAvailable tasks in {args.file}: {', '.join(available_tasks)}")
-    
-    # Main execution loop
     try:
         while True:
-            print(f"\n{'='*50}")
-            print("MULTI-TASK WAYPOINT CONTROLLER")
-            print(f"{'='*50}")
             print(f"Available tasks: {', '.join(available_tasks)}")
             print(f"Task cycles completed: {node.task_counter}")
             print(f"Current height setting: {node.get_current_height():.3f}m")
-            
-            # Force monitoring status
             if node.current_wrench is not None:
                 wrench = node.current_wrench.wrench
                 force_mag = math.sqrt(wrench.force.x**2 + wrench.force.y**2 + wrench.force.z**2)
@@ -679,71 +523,50 @@ def main():
                 node.force_monitoring_enabled = False
             
             if node.force_failure_detected:
-                print(" FORCE FAILURE STATE - Recovery required!")
+                print(" FORCE FAILURE STATE Recovery required")
             
             print("Commands: <task_name> | 'list' | 'test' | 'test-task' | 'quit'")
             
             user_input = input("\nSelect task to execute: ").strip().lower()
             
             if user_input == 'quit' or user_input == 'q':
-                print("Exiting multi-task controller...")
                 break
             elif user_input == 'test' or user_input == 't':
-                print("\n FORCE FAILURE TEST MODE")
                 print("This will simulate a force failure and test the recovery sequence")
                 confirm = input("Proceed with force failure test? (y/N): ").strip().lower()
                 if confirm == 'y':
                     print(" Simulating force failure...")
-                    # Simulate force failure
                     violations = ["Test Force X: 75.0N > 50.0N", "Test simulation"]
                     node.trigger_force_failure(violations, 75.0)
-                    
-                    # Test recovery
-                    print(" Testing recovery sequence...")
                     recovery_success = node.execute_failure_recovery(base_waypoints_data, test_mode=True)
                     
                     if recovery_success:
-                        print(" Force failure test completed - recovery successful!")
+                        print(" Recovery successful")
                     else:
-                        print(" Force failure test failed - recovery unsuccessful!")
-                        
-                    # Prompt for acknowledgment
-                    print(" Please acknowledge the test failure before continuing")
+                        print(" Recovery unsuccessful")
                     input("Press Enter to acknowledge and continue...")
                     node.force_failure_detected = False
-                    print(" Test failure state cleared - ready for normal operation")
                 else:
                     print("Force failure test cancelled")
                 continue
             elif user_input == 'test-task':
-                print("\n TASK EXECUTION TEST MODE")
                 print(f"Available tasks: {', '.join(available_tasks)}")
                 task_input = input("Enter task name to test: ").strip().lower()
                 
                 if task_input in available_tasks:
-                    print(f" Testing task '{task_input}' with simulated robot execution...")
-                    
-                    # Get test coordinates
+                    print(f" Testing task '{task_input}' with simulated robot execution")
                     target_x, target_y = get_fresh_coordinates(test_mode=True)
-                    
-                    # Create working copy and update coordinates
                     working_data = json.loads(json.dumps(base_waypoints_data))
                     updated_count = update_dynamic_coordinates(working_data, target_x, target_y)
                     if updated_count > 0:
                         print(f"Updated {updated_count} waypoints with test coordinates")
-                    
-                    # Update height coordinates
                     current_height = node.get_current_height()
                     height_updated_count = update_height_coordinates(working_data, current_height)
                     if height_updated_count > 0:
                         print(f"Updated {height_updated_count} waypoints with cycle height: {current_height:.3f}m")
-                    
-                    # Filter waypoints for selected task
                     task_waypoints = filter_waypoints_by_task(working_data, task_input)
                     display_task_waypoints(task_waypoints, task_input)
-                    
-                    # Execute task in test mode
-                    print(f"\n Executing {len(task_waypoints)} waypoints in TEST MODE...")
+                    print(f"\n Executing {len(task_waypoints)} waypoints in TEST MODE")
                     success = node.execute_waypoints(task_waypoints, 
                                                    eef_step=args.eef_step, 
                                                    min_fraction=args.min_fraction,
@@ -753,10 +576,9 @@ def main():
                                                    test_mode=True)
                     
                     if success:
-                        print(f" Test execution of task '{task_input}' completed successfully!")
-                        print(" In real mode, this would increment the task counter")
+                        print(f" Test execution of task '{task_input}' completed successfully")
                     else:
-                        print(f" Test execution of task '{task_input}' failed!")
+                        print(f" Test execution of task '{task_input}' failed")
                 else:
                     print(f"Invalid task '{task_input}'. Available: {', '.join(available_tasks)}")
                 continue
@@ -770,42 +592,26 @@ def main():
                 continue
             
             selected_task = user_input
-            print(f"\n--- Preparing Task: {selected_task.upper()} ---")
-            
-            # Get fresh coordinates before each task
             target_x, target_y = get_fresh_coordinates()
             if target_x is None or target_y is None:
-                print("Failed to get coordinates, skipping task")
                 continue
             
-            # Create working copy of waypoints data and update coordinates
             working_data = json.loads(json.dumps(base_waypoints_data))  # Deep copy
-            
-            # Update X,Y coordinates
             updated_count = update_dynamic_coordinates(working_data, target_x, target_y)
             if updated_count > 0:
-                print(f"Updated {updated_count} waypoints with fresh coordinates")
-            
-            # Update height coordinates based on task counter
+                print(f"Updated {updated_count} waypoints")
             current_height = node.get_current_height()
             height_updated_count = update_height_coordinates(working_data, current_height)
             if height_updated_count > 0:
                 print(f"Updated {height_updated_count} waypoints with cycle height: {current_height:.3f}m")
-            
-            # Filter waypoints for selected task
             task_waypoints = filter_waypoints_by_task(working_data, selected_task)
             
             if not task_waypoints:
                 print(f"No waypoints found for task '{selected_task}'")
                 continue
-            
-            # Display task details
             display_task_waypoints(task_waypoints, selected_task)
-            
-            # Get user confirmation
             print(f"\nReady to execute {len(task_waypoints)} waypoints for task '{selected_task}'")
             confirm = input("Proceed with execution? (y/N): ").strip().lower()
-            
             if confirm != 'y':
                 print("Task execution cancelled")
                 continue
@@ -815,8 +621,6 @@ def main():
             print(f"Using coordinates: X={target_x:.4f}, Y={target_y:.4f}")
             print(f"Current cycle height: {current_height:.3f}m")
             print(f"Z-offset applied: {node.GLOBAL_Z_OFFSET*100:.0f}cm")
-            
-            # Execute the task with force monitoring
             success = node.execute_waypoints(task_waypoints, 
                                            eef_step=args.eef_step, 
                                            min_fraction=args.min_fraction,
@@ -825,31 +629,25 @@ def main():
                                            waypoints_data=working_data)
             
             if success:
-                print(f" Task '{selected_task}' completed successfully!")
-                # Increment task counter for next cycle only if no force failure
                 if not node.force_failure_detected:
                     next_height = node.increment_task_counter()
                     if next_height <= node.minimum_height:
-                        print(f" Minimum height reached! Next cycles will use {node.minimum_height:.3f}m")
+                        print(f" Minimum height reached. Next cycles will use {node.minimum_height:.3f}m")
                 else:
-                    print(" Task completed but force failure occurred - counter not incremented")
+                    print(" Force failure occurred  counter not incremented")
             else:
-                print(f" Task '{selected_task}' execution failed!")
+                print(f" Task '{selected_task}' execution failed")
                 if node.force_failure_detected:
-                    print(" Failure was due to force threshold violation")
-                    print("📋 Force failure recovery sequence was executed")
-                    print(" Please acknowledge the failure before continuing")
-                    input("Press Enter to acknowledge and continue...")
-                    # Clear failure state after user acknowledgment
+                    input("Press Enter to acknowledge and continue")
                     node.force_failure_detected = False
-                    print(" Failure state cleared - ready for next task")
+                    print(" Failure state cleared")
                 else:
                     print("Task counter not incremented due to execution failure")
                 
             print("\nReady for next task...")
             
     except KeyboardInterrupt:
-        print("\n\nInterrupted by user. Exiting...")
+        print("\n\nInterrupted by user. Exiting")
     except Exception as e:
         print(f"\nUnexpected error: {e}")
     finally:
