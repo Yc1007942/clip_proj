@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 # Custom parameters
 python3 waypoint_service_moveit.py --file setd.json --eef-step 0.01 --min-fraction 0.8 --timeout 45
