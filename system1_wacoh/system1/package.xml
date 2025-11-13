@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<package format="3">
+    <!-- ─────────────── Basic Information ─────────────── -->
+    <name>system1</name>
+    <version>0.0.0</version>
+    <description>
+        System1
+    </description>
+
+    <maintainer email="suzuki.yusei001@jp.panasonic.com">Yusei Suzuki</maintainer>
+    <license>License</license>
+
+    <!-- ─────────────── Build Tools ─────────────── -->
+    <buildtool_depend>ament_cmake</buildtool_depend>
+    <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+    <!-- ─────────────── Build Dependencies ─────────────── -->
+    <!-- Only ROS 2 packages directly imported by Python nodes -->
+    <build_depend>rclpy</build_depend>
+    <build_depend>geometry_msgs</build_depend>
+    <build_depend>segment_task_pkg</build_depend>
+
+    <!-- ─────────────── Runtime Dependencies ─────────────── -->
+    <exec_depend>rclpy</exec_depend>
+    <exec_depend>geometry_msgs</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>action_msgs</exec_depend>
+    <exec_depend>builtin_interfaces</exec_depend>
+    <exec_depend>segment_task_pkg</exec_depend>
+
+    <!-- Python external libraries (only those resolvable by rosdep) -->
+    <exec_depend>ur_rtde</exec_depend>
+    <exec_depend>pyads</exec_depend>
+    <exec_depend>python3-serial</exec_depend>
+
+    <!-- ─────────────── Test Dependencies ─────────────── -->
+    <test_depend>ament_cmake_pytest</test_depend>
+    <test_depend>pytest</test_depend>
+    <test_depend>rclpy</test_depend>
+    <test_depend>geometry_msgs</test_depend>
+    <test_depend>segment_task_pkg</test_depend>
+
+    <!-- ─────────────── Export ─────────────── -->
+    <!-- Declare this as a pure Python package using ament_python -->
+    <export>
+        <build_type>ament_python</build_type>
+    </export>
+</package>

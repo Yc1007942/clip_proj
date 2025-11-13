@@ -1,0 +1,84 @@
+# Force sensor configuration
+# Parameters for different force sensor types
+
+# Tool frame → Sensor frame mount transforms
+mount_transforms:
+  ur_builtin:
+    translation: [0.0, 0.0, 0.0]
+    rotation: [0.0, 0.0, 0.0, 1.0]  # quaternion [x, y, z, w]
+  wacoh:
+    translation: [0.0, 0.0, 0.0]
+    # Rotation: 22.5 degrees around Z axis
+    rotation: [0.0, 0.0, -0.19509032, 0.98078528]  # quaternion for -22.5° Z rotation
+
+# UR built-in force sensor parameters
+ur_builtin:
+  adm_params:
+    # Inertia matrix (diagonal)
+    inertia: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    zeta: 0.8
+    
+    # Force/torque deadbands
+    force_deadband: 5.0
+    torque_deadband: 0.5
+    bias_sample_count: 50
+    
+    # Stiffness profiles (diagonal values)
+    stiffness_profiles:
+      0: [1500, 1500, 1500, 20, 20, 20]
+      1: [1500, 1500, 1500, 20, 20, 20]
+      2: [1500, 1500, 1500, 150, 100, 100]
+    
+    # Non-diagonal stiffness matrix elements
+    k_task2_pz_ry: -350.0
+    k_task2_py_rz: 350.0
+    
+    # Offset saturation limits
+    max_pos_offset: 0.05    # [m]
+    max_rot_offset: 0.2     # [rad]
+    
+    # Max movement per tick
+    pos_ctrl_linear_step: 0.05   # [m]
+    pos_ctrl_angular_step: 0.10  # [rad]
+    adm_ctrl_linear_step: 0.01   # [m]
+    adm_ctrl_angular_step: 0.025 # [rad]
+  
+  sensor_params: {}
+
+# Wacoh serial force sensor parameters
+wacoh:
+  adm_params:
+    # Inertia matrix (diagonal)
+    inertia: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    zeta: 0.8
+    
+    # Force/torque deadbands
+    force_deadband: 1.0
+    torque_deadband: 0.05
+    bias_sample_count: 50
+    
+    # Stiffness profiles (diagonal values)
+    stiffness_profiles:
+      0: [1500, 1500, 1500, 20, 20, 20]
+      1: [1500, 1500, 1500, 150, 100, 100]
+      2: [1500, 1500, 1500, 150, 100, 100]
+    
+    # Non-diagonal stiffness matrix elements
+    k_task2_pz_ry: -350.0
+    k_task2_py_rz: 350.0
+    
+    # Offset saturation limits
+    max_pos_offset: 0.05    # [m]
+    max_rot_offset: 0.2     # [rad]
+    
+    # Max movement per tick
+    pos_ctrl_linear_step: 0.05   # [m]
+    pos_ctrl_angular_step: 0.10  # [rad]
+    adm_ctrl_linear_step: 0.01   # [m]
+    adm_ctrl_angular_step: 0.025 # [rad]
+  
+  sensor_params:
+    port: "/dev/ttyUSB0"
+    baudrate: 921600
+    timeout: 1.0
+    bias_sample_count: 50

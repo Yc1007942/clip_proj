@@ -1,0 +1,12 @@
+# UR Robot Driver parameters
+# RTDE connection and control parameters
+
+# UR robot IP address
+ROBOT_IP: "192.168.0.11"
+
+# Servo control parameters
+SERVO_LOOKAHEAD_TIME: 0.1
+SERVO_GAIN: 200
+SERVO_VEL: 0.60
+SERVO_ACC: 1.5
+SMOOTH_RATIO: 1.5

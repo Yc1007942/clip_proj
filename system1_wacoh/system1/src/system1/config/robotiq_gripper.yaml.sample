@@ -1,0 +1,5 @@
+# Robotiq Gripper parameters
+
+# Gripper IP address (robot controller IP where gripper is connected)
+GRIPPER_IP: "192.168.0.11"
+GRIPPER_PORT: 63352

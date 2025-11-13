@@ -35,11 +35,9 @@ class MultiTaskMoveIt(Node):
         self.trajectory_action_client = ActionClient(self, FollowJointTrajectory, '/scaled_joint_trajectory_controller/follow_joint_trajectory')
         self.gripper_pub = self.create_publisher(UInt8, '/lebai_gripper/cmd/position', 10)
         self.joint_sub = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
-        
-        # Force/Torque sensor monitoring
         self.wrench_sub = self.create_subscription(
             WrenchStamped, 
-            '/ur_robot/force_torque_sensor_broadcaster/wrench',
+            '/force_torque_sensor_broadcaster/wrench',
             self.wrench_callback, 
             10
         )
@@ -49,13 +47,13 @@ class MultiTaskMoveIt(Node):
         self.force_monitoring_enabled = True
         
         # Force thresholds (configurable parameters)
-        self.force_threshold_x = 5.0  # Newtons
-        self.force_threshold_y = 5.0  # Newtons  
-        self.force_threshold_z = 5.0  # Newtons
-        self.torque_threshold_x = 5.0  # Newton-meters
-        self.torque_threshold_y = 5.0  # Newton-meters
-        self.torque_threshold_z = 5.0  # Newton-meters
-        self.force_resultant_threshold = 5.0  # Overall force magnitude limit
+        self.force_threshold_x = 30.0  # Newtons
+        self.force_threshold_y = 30.0  # Newtons  
+        self.force_threshold_z = 30.0  # Newtons
+        self.torque_threshold_x = 10.0  # Newton-meters
+        self.torque_threshold_y = 10.0  # Newton-meters
+        self.torque_threshold_z = 10.0  # Newton-meters
+        self.force_resultant_threshold = 40.0  # Overall force magnitude limit
         self.consecutive_violations_required = 2  # Require N consecutive violations
         self.consecutive_violations_count = 0
         
@@ -64,12 +62,27 @@ class MultiTaskMoveIt(Node):
         self.current_goal_handle = None
         
         self.current_joint_state = None
+        self.last_executed_pose: Optional[List[float]] = None
         
         # Task execution counter for height adjustment
         self.task_counter = 0
         self.initial_height = 0.325  # Initial height for xy1_up and xy1_up_2
         self.height_decrement = 0.0235  # Height reduction per cycle
         self.minimum_height = 0.28  # Minimum allowed height
+
+        # Dynamic contact/tension parameters using wrist force feedback
+        self.contact_force_threshold = 3.0  # kept for optional diagnostics
+        self.contact_search_step = 0.003
+        self.contact_search_max_depth = 0.06
+        self.tension_detection_force = 2.0  # Force delta indicating cable tension engaged
+        self.tension_release_force = 0.8   # Historical value (may be unused)
+        self.tension_lift_step = 0.002     # 2 mm upward increments for sensitivity
+        self.tension_lift_max = 0.08       # Maximum upward distance for tensioning (m)
+
+        self.xy1_z_offsets: Optional[Dict[str, float]] = None
+        self.xy1_original_z: Optional[Dict[str, float]] = None
+        self.learned_contact_heights: Dict[str, float] = {}
+        self.current_contact_height: Optional[float] = None
         
         print("[MultiTaskMoveIt] Initialized")
         print(f"Height adjustment: Start={self.initial_height}m, Decrement={self.height_decrement}m, Minimum={self.minimum_height}m")
@@ -84,6 +97,33 @@ class MultiTaskMoveIt(Node):
         current_height = self.initial_height - (self.task_counter * self.height_decrement)
         # Ensure height doesn't go below minimum
         return max(current_height, self.minimum_height)
+
+    def ensure_xy1_offsets(self, waypoints_data: Dict) -> None:
+        """Cache the original Z offsets for xy1 waypoints relative to xy1_down."""
+        if self.xy1_z_offsets is not None:
+            return
+
+        offsets: Dict[str, float] = {}
+        originals: Dict[str, float] = {}
+        base_z: Optional[float] = None
+
+        for waypoint in waypoints_data.get('waypoints', []):
+            name = waypoint.get('name', '')
+            if name.startswith('xy1'):
+                z_val = waypoint['pose'][2]
+                originals[name] = z_val
+                if name == 'xy1_down':
+                    base_z = z_val
+
+        if base_z is None:
+            print("WARNING: xy1_down waypoint not found while computing offsets")
+            return
+
+        for name, z_val in originals.items():
+            offsets[name] = z_val - base_z
+
+        self.xy1_original_z = originals
+        self.xy1_z_offsets = offsets
     
     def increment_task_counter(self):
         """Increment task counter and log height changes"""
@@ -94,6 +134,49 @@ class MultiTaskMoveIt(Node):
         if current_height <= self.minimum_height:
             print(f"WARNING: Minimum height ({self.minimum_height}m) reached!")
         return current_height
+
+    def apply_contact_height(self, contact_z: float, waypoints: List[Dict], waypoints_data: Dict) -> None:
+        """Apply a new contact height to all xy1 waypoints based on cached offsets."""
+        if self.xy1_z_offsets is None:
+            return
+
+        def update_collection(collection: List[Dict]) -> None:
+            for wp in collection:
+                name = wp.get('name', '')
+                if name in self.xy1_z_offsets:
+                    new_z = contact_z + self.xy1_z_offsets[name]
+                    wp['pose'][2] = new_z
+
+        # Update the working subset and full dataset
+        update_collection(waypoints)
+        if waypoints_data is not None:
+            update_collection(waypoints_data.get('waypoints', []))
+
+    def apply_lift_height(self, lift_z: float, waypoints: List[Dict], waypoints_data: Dict) -> None:
+        """Update xy1_up waypoints to a new lift height while keeping offsets between up poses."""
+        if self.xy1_z_offsets is None:
+            return
+
+        up_base = 'xy1_up'
+        up2 = 'xy1_up_2'
+        up_offset = 0.0
+        if self.xy1_z_offsets and up_base in self.xy1_z_offsets:
+            up_offset = self.xy1_z_offsets[up_base]
+
+        def update(collection: List[Dict]) -> None:
+            for wp in collection:
+                name = wp.get('name', '')
+                if name == up_base:
+                    wp['pose'][2] = lift_z
+                elif name == up2:
+                    offset = 0.0
+                    if self.xy1_z_offsets and up2 in self.xy1_z_offsets and up_base in self.xy1_z_offsets:
+                        offset = self.xy1_z_offsets[up2] - self.xy1_z_offsets[up_base]
+                    wp['pose'][2] = lift_z + offset
+
+        update(waypoints)
+        if waypoints_data is not None:
+            update(waypoints_data.get('waypoints', []))
 
     def joint_state_callback(self, msg):
         """Store current joint state for planning"""
@@ -113,7 +196,6 @@ class MultiTaskMoveIt(Node):
             self.check_force_violations()
 
     def calculate_average_wrench(self):
-        """Calculate moving average of recent wrench readings"""
         if not self.wrench_history:
             return None
             
@@ -129,6 +211,13 @@ class MultiTaskMoveIt(Node):
             'force': {'x': avg_force_x, 'y': avg_force_y, 'z': avg_force_z},
             'torque': {'x': avg_torque_x, 'y': avg_torque_y, 'z': avg_torque_z}
         }
+
+    def get_filtered_force(self) -> Optional[Dict[str, float]]:
+        """Return the latest averaged force vector if available."""
+        avg_wrench = self.calculate_average_wrench()
+        if not avg_wrench:
+            return None
+        return avg_wrench['force']
 
     def check_force_violations(self):
         """Check if current force readings exceed thresholds"""
@@ -198,8 +287,204 @@ class MultiTaskMoveIt(Node):
         print("Opening gripper to 100...")
         self.set_gripper(100)
         time.sleep(1.0)  # Give gripper time to open
-        
+
         print("Force failure handling completed. Ready for recovery sequence.")
+
+    def perform_contact_search(self,
+                               task_name: Optional[str],
+                               waypoint: Dict,
+                               waypoints: List[Dict],
+                               waypoints_data: Dict,
+                               eef_step: float,
+                               velocity_scale: float) -> Optional[float]:
+        """Probe downward using force feedback to find the cable contact height."""
+        if self.last_executed_pose is None:
+            print("WARNING: Cannot perform contact search without a known current pose")
+            return None
+
+        start_z = self.last_executed_pose[2]
+        max_depth = self.contact_search_max_depth
+        step = self.contact_search_step
+        direction = -1  # move downward
+        current_z = start_z
+        contact_z: Optional[float] = None
+
+        # Temporarily disable failure monitoring to avoid false aborts while probing
+        original_monitoring = self.force_monitoring_enabled
+        self.force_monitoring_enabled = False
+
+        print(f" Starting contact search from Z={start_z:.3f}m with step {step*1000:.1f} mm")
+
+        try:
+            distance_travelled = 0.0
+            iterations = 0
+
+            while distance_travelled <= max_depth:
+                current_z += direction * step
+                distance_travelled += step
+
+                if current_z < start_z - max_depth:
+                    current_z = start_z - max_depth
+
+                temp_wp = dict(waypoint)
+                temp_wp['pose'] = list(waypoint['pose'])
+                temp_wp['pose'][2] = current_z
+
+                trajectory, fraction = self.plan_cartesian_path([temp_wp], min(eef_step, step / 2), 0.1)
+                if not trajectory or fraction < 0.1:
+                    print("Contact search planning failed at step", iterations)
+                    break
+
+                if not self.execute_trajectory(trajectory, timeout=20.0, velocity_scale=min(velocity_scale, 0.05)):
+                    print("Contact search execution failed at step", iterations)
+                    break
+
+                self.last_executed_pose = list(temp_wp['pose'])
+                iterations += 1
+
+                force = self.get_filtered_force()
+                if force:
+                    force_mag = math.sqrt(force['x']**2 + force['y']**2 + force['z']**2)
+                    print(f"   Step {iterations}: Z={current_z:.3f}m, |F|={force_mag:.2f}N")
+                    if abs(force['z']) >= self.contact_force_threshold or force_mag >= self.contact_force_threshold:
+                        contact_z = current_z
+                        print(f" Contact detected at Z={contact_z:.3f}m (|F|={force_mag:.2f}N)")
+                        break
+
+                if distance_travelled >= max_depth:
+                    print("Reached maximum probing depth without detecting contact")
+                    break
+
+        finally:
+            self.force_monitoring_enabled = original_monitoring
+
+        if contact_z is None:
+            print(" Contact not confirmed; using last probed height")
+            contact_z = current_z
+
+        self.current_contact_height = contact_z
+        if task_name:
+            self.learned_contact_heights[task_name] = contact_z
+
+        # Apply to downstream waypoints
+        self.apply_contact_height(contact_z, waypoints, waypoints_data)
+        return contact_z
+
+    def apply_contact_height(self, contact_z: float, waypoints: List[Dict], waypoints_data: Dict):
+        """Apply learned contact height to relevant waypoints"""
+        print(f"📏 Applying contact height {contact_z:.3f}m to xy1 waypoints")
+        
+        # Update xy1_down to the detected contact height
+        for waypoint in waypoints:
+            if waypoint.get('name') == 'xy1_down':
+                old_z = waypoint['pose'][2]
+                waypoint['pose'][2] = contact_z
+                print(f"  Updated xy1_down: {old_z:.3f}m → {contact_z:.3f}m")
+                break
+        
+        # Update all xy1 waypoints in the main waypoints_data using offsets
+        if self.xy1_z_offsets:
+            for waypoint in waypoints_data.get('waypoints', []):
+                name = waypoint.get('name', '')
+                if name.startswith('xy1') and name in self.xy1_z_offsets:
+                    old_z = waypoint['pose'][2]
+                    new_z = contact_z + self.xy1_z_offsets[name]
+                    waypoint['pose'][2] = new_z
+                    print(f"  Updated {name}: {old_z:.3f}m → {new_z:.3f}m (offset: {self.xy1_z_offsets[name]:+.3f}m)")
+
+    def perform_tension_lift(self,
+                              task_name: Optional[str],
+                              waypoints: List[Dict],
+                              waypoints_data: Dict,
+                              eef_step: float,
+                              velocity_scale: float) -> Optional[float]:
+        """Raise the gripped cable until tension is detected using force feedback."""
+        if self.last_executed_pose is None:
+            return None
+
+        start_z = self.last_executed_pose[2]
+        step = self.tension_lift_step
+        max_lift = self.tension_lift_max
+        total_lift = 0.0
+        final_z = start_z
+
+        original_monitoring = self.force_monitoring_enabled
+        self.force_monitoring_enabled = False
+
+        baseline_force = self.get_filtered_force()
+        baseline_fz = baseline_force['z'] if baseline_force else 0.0
+        baseline_mag = math.sqrt(baseline_force['x']**2 + baseline_force['y']**2 + baseline_force['z']**2) if baseline_force else 0.0
+
+        print(f" Starting tension lift from Z={start_z:.3f}m (baseline |Fz|={abs(baseline_fz):.2f}N)")
+
+        try:
+            while total_lift <= max_lift:
+                final_z = start_z + total_lift + step
+                temp_pose = list(self.last_executed_pose)
+                temp_pose[2] = final_z
+
+                temp_wp = {'name': 'tension_step', 'pose': temp_pose}
+                trajectory, fraction = self.plan_cartesian_path([temp_wp], min(eef_step, step / 2), 0.1)
+                if not trajectory or fraction < 0.1:
+                    print("Tension lift planning failed; stopping lift")
+                    break
+
+                if not self.execute_trajectory(trajectory, timeout=20.0, velocity_scale=min(velocity_scale, 0.08)):
+                    print("Tension lift execution failed; stopping lift")
+                    break
+
+                self.last_executed_pose = list(temp_pose)
+                total_lift += step
+
+                force = self.get_filtered_force()
+                if force:
+                    vertical_abs = abs(force['z'])
+                    force_mag = math.sqrt(force['x']**2 + force['y']**2 + force['z']**2)
+                    delta_fz = abs(vertical_abs - abs(baseline_fz))
+                    delta_mag = abs(force_mag - baseline_mag)
+                    print(f"   Lift to Z={final_z:.3f}m, |Fz|={vertical_abs:.2f}N (Δ={delta_fz:.2f}), |F|={force_mag:.2f}N (Δ={delta_mag:.2f})")
+
+                    if (delta_fz >= self.tension_detection_force or
+                            delta_mag >= self.tension_detection_force or
+                            vertical_abs >= self.force_threshold_z):
+                        print(" Cable tension detected; stopping lift")
+                        break
+
+                if total_lift >= max_lift:
+                    print("Reached maximum lift distance during tensioning")
+                    break
+
+        finally:
+            self.force_monitoring_enabled = original_monitoring
+
+        self.apply_lift_height(final_z, waypoints, waypoints_data)
+        self.current_contact_height = (self.current_contact_height
+                                       if self.current_contact_height is not None
+                                       else final_z)
+        if task_name:
+            self.learned_contact_heights[task_name] = self.current_contact_height
+        return final_z
+
+    def apply_lift_height(self, lift_z: float, waypoints: List[Dict], waypoints_data: Dict):
+        """Apply tension lift height to relevant waypoints"""
+        print(f"🎯 Applying tension lift height {lift_z:.3f}m to xy1_up waypoints")
+        
+        # Update xy1_up waypoints to the final lift height
+        lift_waypoints = ['xy1_up', 'xy1_up_2']
+        for waypoint in waypoints:
+            name = waypoint.get('name', '')
+            if name in lift_waypoints:
+                old_z = waypoint['pose'][2]
+                waypoint['pose'][2] = lift_z
+                print(f"  Updated {name}: {old_z:.3f}m → {lift_z:.3f}m")
+        
+        # Also update in main waypoints_data
+        for waypoint in waypoints_data.get('waypoints', []):
+            name = waypoint.get('name', '')
+            if name in lift_waypoints:
+                old_z = waypoint['pose'][2]
+                waypoint['pose'][2] = lift_z
+                print(f"  Updated {name} in main data: {old_z:.3f}m → {lift_z:.3f}m")
 
     def execute_failure_recovery(self, waypoints_data, test_mode=False):
         """Execute recovery sequence - move to failure_home waypoint"""
@@ -212,7 +497,7 @@ class MultiTaskMoveIt(Node):
                     break
             
             if not failure_home_waypoint:
-                print("ERROR: failure_home waypoint not found in waypoint data!")
+                print("ERROR: failure_home waypoint not found in waypoint data")
                 return False
             
             print(f"Executing recovery to failure_home: {failure_home_waypoint['pose']}")
@@ -245,7 +530,7 @@ class MultiTaskMoveIt(Node):
                 print(" Recovery to failure_home completed successfully")
                 return True
             else:
-                print(" Recovery to failure_home failed!")
+                print(" Recovery to failure_home failed")
                 return False
                 
         except Exception as e:
@@ -426,72 +711,92 @@ class MultiTaskMoveIt(Node):
         msg.data = value
         self.gripper_pub.publish(msg)
 
-    def execute_waypoints(self, waypoints: List[dict], eef_step=0.005, min_fraction=0.8, timeout=120.0, velocity_scale=0.1, waypoints_data=None, test_mode=False):
-        """Execute a sequence of Cartesian waypoints with individual gripper control and force monitoring"""
+    def execute_waypoints(self,
+                           waypoints: List[dict],
+                           eef_step=0.005,
+                           min_fraction=0.8,
+                           timeout=120.0,
+                           velocity_scale=0.1,
+                           waypoints_data=None,
+                           task_name: Optional[str] = None,
+                           test_mode=False):
+        """Execute a sequence of waypoints with dynamic contact/tension handling."""
         print(f"Executing {len(waypoints)} waypoints individually...")
         if test_mode:
-            print(" TEST MODE: Simulating waypoint execution without sending robot commands")
-        
+            print(" TEST MODE: Simulating waypoint execution without real robot motion")
+
+        if waypoints_data:
+            self.ensure_xy1_offsets(waypoints_data)
+
         for i, waypoint in enumerate(waypoints):
-            print(f"\n--- Waypoint {i+1}: {waypoint.get('name', f'waypoint_{i+1}')} ---")
-            
-            # Check if we have a previous force failure that needs recovery
+            name = waypoint.get('name', '')
+            print(f"\n--- Waypoint {i+1}: {name or f'waypoint_{i+1}'} ---")
+
             if self.force_failure_detected and waypoints_data and not test_mode:
-                print(" Force failure detected! Initiating recovery sequence...")
+                print(" Force failure detected! Initiating recovery sequence before continuing...")
                 recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
                 if recovery_success:
-                    print("Recovery completed. Task execution aborted.")
+                    print("Recovery completed. Aborting current task run.")
                 else:
                     print("Recovery failed! Manual intervention required.")
                 return False
-            
-            # Plan path to single waypoint
-            single_waypoint = [waypoint]
-            trajectory, fraction = self.plan_cartesian_path(single_waypoint, eef_step, min_fraction)
-            
-            if not trajectory:
-                print(f"Failed to plan path to waypoint {i+1}")
-                return False
-                
-            print(f"Planned trajectory covers {fraction*100:.2f}% of path")
-            if fraction < min_fraction:
-                print(f"Path coverage {fraction*100:.2f}% is below minimum required {min_fraction*100:.2f}%")
-                return False
-            
-            # Execute trajectory to this waypoint (with force monitoring)
-            success = self.execute_trajectory(trajectory, timeout, velocity_scale, test_mode=test_mode)
-            
-            # Check for force failure after trajectory execution (skip in test mode)
-            if self.force_failure_detected and not test_mode:
-                print(f" Force failure occurred during waypoint {i+1} execution!")
-                if waypoints_data:
-                    print("Initiating recovery sequence...")
-                    recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
-                    if recovery_success:
-                        print("Recovery completed. Task execution aborted.")
-                    else:
-                        print("Recovery failed! Manual intervention required.")
-                return False
-            
-            if not success:
-                print(f"Failed to execute trajectory to waypoint {i+1}")
-                return False
-            
-            # Handle gripper control for this waypoint
+
+            if test_mode:
+                # Simulate motion planning/execution delays without commanding hardware
+                print(" TEST MODE: Skipping motion execution")
+                time.sleep(0.1)
+                success = True
+            else:
+                single_waypoint = [waypoint]
+                trajectory, fraction = self.plan_cartesian_path(single_waypoint, eef_step, min_fraction)
+                if not trajectory:
+                    print(f"Failed to plan path to waypoint {i+1}")
+                    return False
+
+                print(f"Planned trajectory covers {fraction*100:.2f}% of path")
+                if fraction < min_fraction:
+                    print(f"Path coverage {fraction*100:.2f}% is below minimum required {min_fraction*100:.2f}%")
+                    return False
+
+                success = self.execute_trajectory(trajectory, timeout, velocity_scale, test_mode=test_mode)
+
+                if self.force_failure_detected:
+                    print(f" Force failure occurred during waypoint {i+1} execution!")
+                    if waypoints_data:
+                        print("Attempting recovery sequence...")
+                        recovery_success = self.execute_failure_recovery(waypoints_data, test_mode=test_mode)
+                        if recovery_success:
+                            print("Recovery completed. Aborting current task run.")
+                        else:
+                            print("Recovery failed! Manual intervention required.")
+                    return False
+
+                if not success:
+                    print(f"Failed to execute trajectory to waypoint {i+1}")
+                    return False
+
+            # Gripper handling
             if 'gripper' in waypoint:
                 if test_mode:
                     print(f" TEST MODE: Would set gripper to {waypoint['gripper']}")
                 else:
                     print(f"Setting gripper to {waypoint['gripper']}")
                     self.set_gripper(waypoint['gripper'])
-                time.sleep(0.1 if test_mode else 0.5)  # Shorter wait in test mode
-            
-            # Handle wait time for this waypoint
+                time.sleep(0.1 if test_mode else 0.5)
+
+                # After gripping (assume xy1_closed), perform tension lift
+                if name == 'xy1_closed' and waypoints_data is not None and not test_mode:
+                    self.perform_tension_lift(task_name, waypoints, waypoints_data, eef_step, velocity_scale)
+
+            # Optional wait at waypoint
             if 'wait_time' in waypoint and waypoint['wait_time'] > 0:
-                wait_time = 0.2 if test_mode else waypoint['wait_time']  # Shorter wait in test mode
-                print(f"Waiting {wait_time} seconds..." + (" (test mode)" if test_mode else ""))
+                wait_time = 0.2 if test_mode else waypoint['wait_time']
+                print(f"Waiting {wait_time} seconds" + (" (test mode)" if test_mode else ""))
                 time.sleep(wait_time)
-        
+
+            # Cache last executed pose for incremental adjustments
+            self.last_executed_pose = list(waypoint['pose'])
+
         print("\nAll waypoints executed successfully!")
         return True
 
@@ -750,6 +1055,7 @@ def main():
                                                    timeout=args.timeout,
                                                    velocity_scale=args.velocity_scale,
                                                    waypoints_data=working_data,
+                                                   task_name=task_input,
                                                    test_mode=True)
                     
                     if success:
@@ -822,7 +1128,8 @@ def main():
                                            min_fraction=args.min_fraction,
                                            timeout=args.timeout,
                                            velocity_scale=args.velocity_scale,
-                                           waypoints_data=working_data)
+                                           waypoints_data=working_data,
+                                           task_name=selected_task)
             
             if success:
                 print(f" Task '{selected_task}' completed successfully!")
@@ -837,7 +1144,7 @@ def main():
                 print(f" Task '{selected_task}' execution failed!")
                 if node.force_failure_detected:
                     print(" Failure was due to force threshold violation")
-                    print("📋 Force failure recovery sequence was executed")
+                    print(" Force failure recovery sequence was executed")
                     print(" Please acknowledge the failure before continuing")
                     input("Press Enter to acknowledge and continue...")
                     # Clear failure state after user acknowledgment

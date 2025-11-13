@@ -17,8 +17,8 @@ class WirePositionReceiver:
         self.timeout = timeout
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.latest_x = -0.4539  # Default fallback coordinates
-        self.latest_y = 0.4059
+        self.latest_x = -0.617  # Default fallback coordinates
+        self.latest_y = 0.545
         self.latest_timestamp = None
         self.connection_active = False
         self.server_socket = None

@@ -1,0 +1,20 @@
+# COBOTTA Robot Driver parameters
+# PLC connection and variable configuration
+
+# PLC connection information
+PLC_CLIENT_NETID: "192.168.0.25.1.1"
+PLC_TARGET_IP: "192.168.0.50"
+PLC_TARGET_NETID: "5.125.190.55.1.1"
+PLC_PORT: 352
+
+# Variable names for position/pose commands
+TARGET_POSE_VAR: "Object2 (ImpContPlus_bayesian_LSPB_ADS).ImpContPlus_bayesian_LSPB_ADS_U.FromJSON"
+
+# Variable names for reading current pose and force/torque
+CURRENT_POSE_VAR: "Object2 (ImpContPlus_bayesian_LSPB_ADS).ImpContPlus_bayesian_LSPB_ADS_U.CurrentPose"
+CURRENT_WRENCH_VAR: "Object2 (ImpContPlus_bayesian_LSPB_ADS).ImpContPlus_bayesian_LSPB_ADS_U.CurrentForce"
+
+# Array lengths
+COMMAND_ARRAY_LENGTH: 6
+CURRENT_POSE_ARRAY_LENGTH: 6
+CURRENT_WRENCH_ARRAY_LENGTH: 6

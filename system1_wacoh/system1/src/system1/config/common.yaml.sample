@@ -1,0 +1,24 @@
+# Common configuration parameters for system1
+# These parameters can be modified without rebuilding the package
+
+# Motion Controller parameters
+MOTION_CONTROLLER_RATE_HZ: 50.0
+HARDWARE_INTERFACE_RATE_HZ: 250.0
+
+# Position control mode - arrival detection thresholds
+POS_CTRL_REACHED_POSITION_THRESHOLD: 0.001    # [m]
+POS_CTRL_REACHED_ORIENTATION_THRESHOLD: 0.01   # [rad]
+
+# Admittance control mode - arrival detection thresholds
+ADM_CTRL_REACHED_INSERTION_THRESHOLD: 0.003    # [m]
+ADM_CTRL_REACHED_LATERAL_THRESHOLD: 0.06       # [m]
+ADM_CTRL_REACHED_ORIENTATION_THRESHOLD: 0.03   # [rad]
+
+# Hardware selection
+# Available options:
+#   ROBOT_ARM_TYPE: "ur" | "cobotta"
+#   GRIPPER_TYPE: "robotiq"
+#   FORCE_SENSOR_TYPE: "ur_builtin" | "wacoh"
+ROBOT_ARM_TYPE: "ur"
+GRIPPER_TYPE: "robotiq"
+FORCE_SENSOR_TYPE: "ur_builtin"
