@@ -68,3 +68,12 @@ devel_isolated/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Ignore all log directories and log files
+log/
+*.log
+
+*.pdf
+
+*.gv
